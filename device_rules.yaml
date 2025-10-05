@@ -1,0 +1,12 @@
+device_rules:
+  - { regex: '(?i)iphone|android|galaxy|pixel', type: 'Smartphone' }
+  - { regex: '(?i)ipad|tablet', type: 'Tablet' }
+  - { regex: '(?i)macbook|thinkpad|surface|laptop', type: 'Laptop' }
+  - { regex: '(?i)tv|chromecast|firestick', type: 'Smart-TV/Streaming' }
+  - { regex: '(?i)fritz.box|router|gateway', type: 'Router' }
+  - { regex: '(?i)hp|brother|canon|printer', type: 'Drucker' }
+  - { regex: '(?i)sonos|alexa|echo|google-home', type: 'Smart-Speaker' }
+  - { regex: '(?i)roborock|vacuum|ecovacs', type: 'Saugroboter' }
+  - { regex: '(?i)esp32|esp8266|tasmota|wled', type: 'IoT-Gerät (DIY)' }
+  - { regex: '(?i)tuya|gosund|shelly', type: 'IoT-Gerät (Kommerziell)' }
+  - { regex: '(?i)nas|synology|qnap', type: 'NAS/Server' }

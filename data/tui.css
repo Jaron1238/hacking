@@ -1,0 +1,21 @@
+/* data/tui.css */
+
+Screen {
+    layout: vertical;
+}
+
+#left-pane, #right-pane {
+    width: 50%;
+    padding: 1;
+    border: round white;
+}
+
+#detail-pane {
+    height: 12;
+    padding: 1;
+    border: round white;
+}
+
+DataTable {
+    height: 100%;
+}

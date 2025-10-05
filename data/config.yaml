@@ -1,0 +1,11 @@
+# Minimale, gültige config.yaml
+# Fügen Sie hier Ihre spezifischen Einstellungen und Profile hinzu.
+# Wichtig ist, dass die Datei nicht leer ist und eine gültige YAML-Syntax hat.
+
+capture:
+  interface: mon0
+  duration: 60
+
+database:
+  path: "events.db"
+  label_db: "labels.db"
