@@ -21,7 +21,7 @@ Ein umfassendes WLAN-Analyse-Tool mit Machine Learning-Funktionen zur Erfassung,
 
 ```bash
 source setup.sh
-
+```
 ## Schnellstart
 
 ### 1. WiFi-Pakete erfassen

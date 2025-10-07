@@ -40,7 +40,7 @@ cat > "$WRAPPER_PATH" <<EOF
 # Dieses Skript wird von systemd aufgerufen.
 
 # Warte 20 Sekunden, um sicherzustellen, dass das Netzwerk vollständig initialisiert ist
-sleep 20
+sleep 30
 
 # Liste der Heimnetzwerke
 declare -a HOME_WLANS=(${HOME_WLANS[@]})
