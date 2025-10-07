@@ -1,7 +1,7 @@
 #!/bin/bash
 # WLAN Analysis Tool - Setup mit Python-Autoupdate & Backup
-# Funktioniert auf Raspberry Pi OS / Debian-basierten Systemen
-# Schützt den aktiven Kernel und verhindert initramfs-Fehler
+# Raspberry Pi / Debian-basiert
+# Schützt alte Kernel und verhindert initramfs-Fehler
 
 set -e
 
@@ -20,12 +20,18 @@ NC='\033[0m'
 CURRENT_KERNEL=$(uname -r)
 echo -e "${YELLOW}Aktueller Kernel: $CURRENT_KERNEL${NC}"
 
-# === Alte Kernel / problematische Kernel auf Hold setzen ===
-echo -e "${YELLOW}Schütze den aktuellen Kernel und problematische neue Kernel...${NC}"
-sudo apt-mark hold linux-image-6.12.47+rpt-rpi-v8 \
-                    linux-headers-6.12.47+rpt-rpi-v8 \
-                    linux-image-6.12.47+rpt-rpi-2712 \
-                    linux-headers-6.12.47+rpt-rpi-2712
+# === Alte Kernel erkennen und von initramfs-Update ausschließen ===
+echo -e "${YELLOW}Suche alte Kernel und sperre initramfs-Updates...${NC}"
+KERNELS=$(ls /boot/vmlinuz-* | sed 's#/boot/vmlinuz-##')
+
+for k in $KERNELS; do
+    if [ "$k" != "$CURRENT_KERNEL" ]; then
+        echo " - Ausschließen: $k"
+        sudo touch /etc/initramfs-tools/conf.d/no-update-$k
+        # Kernel-Pakete ebenfalls auf Hold setzen, falls neu
+        sudo apt-mark hold linux-image-$k linux-headers-$k || true
+    fi
+done
 
 # === System-Update ===
 echo -e "${YELLOW}System wird aktualisiert...${NC}"
@@ -37,49 +43,44 @@ libbz2-dev liblzma-dev
 
 # === Python-Backup ===
 if command -v python3 &> /dev/null; then
-    CURRENT_VERSION=$(python3 --version | awk '{print $2}')
-    BACKUP_DIR="/usr/local/python_backup_${CURRENT_VERSION}"
-    echo ""
-    echo -e "${YELLOW}Erstelle Backup der aktuellen Python-Version ($CURRENT_VERSION)...${NC}"
+    PYTHON_VER=$(python3 --version | awk '{print $2}')
+    BACKUP_DIR="/usr/local/python_backup_${PYTHON_VER}"
+    echo -e "${YELLOW}Backup der aktuellen Python-Version ($PYTHON_VER) wird erstellt...${NC}"
     sudo mkdir -p "$BACKUP_DIR"
     sudo cp -r /usr/bin/python3* "$BACKUP_DIR" 2>/dev/null || true
     sudo cp -r /usr/local/bin/python3* "$BACKUP_DIR" 2>/dev/null || true
     sudo cp -r /usr/lib/python3* "$BACKUP_DIR" 2>/dev/null || true
     echo -e "${GREEN}✓ Backup erstellt unter: $BACKUP_DIR${NC}"
 else
-    echo -e "${YELLOW}Python3 war nicht installiert – kein Backup nötig${NC}"
+    echo -e "${YELLOW}Python3 nicht installiert – kein Backup nötig${NC}"
 fi
 
 # === Neueste Python-Version abrufen ===
-echo ""
 echo "Suche nach der neuesten Python-Version..."
 LATEST=$(wget -qO- https://www.python.org/ftp/python/ | grep -oP '(?<=href=")[0-9]+\.[0-9]+\.[0-9]+(?=/")' | sort -V | tail -1)
 echo -e "${GREEN}Neueste Version: Python $LATEST${NC}"
 
-# === Prüfen ob Update nötig ===
+# === Python aktualisieren falls nötig ===
 if python3 --version 2>/dev/null | grep -q "$LATEST"; then
     echo -e "${GREEN}Python ist bereits auf dem neuesten Stand ($LATEST).${NC}"
 else
     echo -e "${YELLOW}Installiere Python $LATEST aus Source...${NC}"
     cd /tmp
-    wget https://www.python.org/ftp/python/$LATEST/Python-$LATEST.tgz || { echo "Download fehlgeschlagen"; exit 1; }
+    wget https://www.python.org/ftp/python/$LATEST/Python-$LATEST.tgz
     tar -xzf Python-$LATEST.tgz
     cd Python-$LATEST
     ./configure --enable-optimizations
     make -j$(nproc)
     sudo make altinstall
-
     NEW_BIN=$(ls /usr/local/bin/python3.* | sort -V | tail -1)
     sudo ln -sf "$NEW_BIN" /usr/local/bin/python3
-    hash -r  # Bash merkt sich neue Version sofort
-
+    hash -r
     echo -e "${GREEN}✓ Python $LATEST erfolgreich installiert.${NC}"
 fi
 
 # === Virtual Environment ===
-echo ""
-echo "Erstelle Virtual Environment..."
 VENV_DIR="$PWD/.venv"
+echo "Erstelle Virtual Environment..."
 if [ -d "$VENV_DIR" ]; then
     echo -e "${YELLOW}Virtual Environment existiert bereits${NC}"
 else
@@ -88,20 +89,14 @@ else
 fi
 
 # === Aktivieren & Dependencies ===
-echo "Aktiviere Virtual Environment..."
 source "$VENV_DIR/bin/activate"
-
-echo ""
 echo "Aktualisiere pip..."
 pip install --upgrade pip --quiet
-
-echo ""
 echo "Installiere Dependencies..."
 pip install --upgrade -r requirements.txt
 
-# === Initramfs für aktiven Kernel neu erstellen ===
-echo ""
-echo -e "${YELLOW}Erstelle initramfs für den aktiven Kernel $CURRENT_KERNEL...${NC}"
+# === Initramfs für aktiven Kernel ===
+echo -e "${YELLOW}Erstelle initramfs nur für den aktiven Kernel ($CURRENT_KERNEL)...${NC}"
 sudo update-initramfs -c -k "$CURRENT_KERNEL"
 
 # === Abschluss ===
