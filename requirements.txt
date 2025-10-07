@@ -1,0 +1,39 @@
+# Core-Abhängigkeiten für Analyse, Machine Learning und Datenerfassung
+# Versions-Empfehlungen (Stand: Januar 2025)
+
+# Machine Learning & Data Science
+scikit-learn>=1.3.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+joblib>=1.3.0
+
+# Deep Learning
+torch>=2.0.0,<3.0.0
+
+# Network Analysis
+scapy>=2.5.0
+networkx>=3.0,<4.0
+
+# Performance & Caching
+persist-queue>=0.8.0
+orjson>=3.9.0
+
+# UI & Output
+rich>=13.0.0
+tqdm>=4.65.0
+plotext>=5.2.0
+textual>=0.47.0
+
+# Configuration & Templating
+PyYAML>=6.0
+Jinja2>=3.1.0
+
+# Testing
+pytest>=7.4.0
+pytest-mock>=3.11.0
+
+# Router Integration
+fritzconnection>=1.13.0
+
+# HINWEIS: Nach Installation diese Datei mit tatsächlichen Versionen aktualisieren:
+# pip freeze > requirements.txt
