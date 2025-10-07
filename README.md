@@ -20,14 +20,7 @@ Ein umfassendes WLAN-Analyse-Tool mit Machine Learning-Funktionen zur Erfassung,
 ## Installation
 
 ```bash
-# Virtual Environment erstellen
-python3 -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# .venv\Scripts\activate  # Windows
-
-# Dependencies installieren
-pip install -r requirements.txt
-```
+source setup.sh
 
 ## Schnellstart
 
