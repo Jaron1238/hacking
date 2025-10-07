@@ -1,6 +1,7 @@
 #!/bin/bash
 # WLAN Analysis Tool - Setup mit Python-Autoupdate & Backup
 # Funktioniert auf Raspberry Pi OS / Debian-basierten Systemen
+# Schützt den aktiven Kernel und verhindert initramfs-Fehler
 
 set -e
 
@@ -14,6 +15,17 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
+
+# === Aktuellen Kernel merken ===
+CURRENT_KERNEL=$(uname -r)
+echo -e "${YELLOW}Aktueller Kernel: $CURRENT_KERNEL${NC}"
+
+# === Alte Kernel / problematische Kernel auf Hold setzen ===
+echo -e "${YELLOW}Schütze den aktuellen Kernel und problematische neue Kernel...${NC}"
+sudo apt-mark hold linux-image-6.12.47+rpt-rpi-v8 \
+                    linux-headers-6.12.47+rpt-rpi-v8 \
+                    linux-image-6.12.47+rpt-rpi-2712 \
+                    linux-headers-6.12.47+rpt-rpi-2712
 
 # === System-Update ===
 echo -e "${YELLOW}System wird aktualisiert...${NC}"
@@ -50,7 +62,7 @@ if python3 --version 2>/dev/null | grep -q "$LATEST"; then
 else
     echo -e "${YELLOW}Installiere Python $LATEST aus Source...${NC}"
     cd /tmp
-    wget https://www.python.org/ftp/python/$LATEST/Python-$LATEST.tgz
+    wget https://www.python.org/ftp/python/$LATEST/Python-$LATEST.tgz || { echo "Download fehlgeschlagen"; exit 1; }
     tar -xzf Python-$LATEST.tgz
     cd Python-$LATEST
     ./configure --enable-optimizations
@@ -59,6 +71,7 @@ else
 
     NEW_BIN=$(ls /usr/local/bin/python3.* | sort -V | tail -1)
     sudo ln -sf "$NEW_BIN" /usr/local/bin/python3
+    hash -r  # Bash merkt sich neue Version sofort
 
     echo -e "${GREEN}✓ Python $LATEST erfolgreich installiert.${NC}"
 fi
@@ -66,16 +79,17 @@ fi
 # === Virtual Environment ===
 echo ""
 echo "Erstelle Virtual Environment..."
-if [ -d ".venv" ]; then
+VENV_DIR="$PWD/.venv"
+if [ -d "$VENV_DIR" ]; then
     echo -e "${YELLOW}Virtual Environment existiert bereits${NC}"
 else
-    python3 -m venv .venv
+    python3 -m venv "$VENV_DIR"
     echo -e "${GREEN}✓ Virtual Environment erstellt${NC}"
 fi
 
 # === Aktivieren & Dependencies ===
 echo "Aktiviere Virtual Environment..."
-source .venv/bin/activate
+source "$VENV_DIR/bin/activate"
 
 echo ""
 echo "Aktualisiere pip..."
@@ -83,7 +97,12 @@ pip install --upgrade pip --quiet
 
 echo ""
 echo "Installiere Dependencies..."
-pip install -r requirements.txt
+pip install --upgrade -r requirements.txt
+
+# === Initramfs für aktiven Kernel neu erstellen ===
+echo ""
+echo -e "${YELLOW}Erstelle initramfs für den aktiven Kernel $CURRENT_KERNEL...${NC}"
+sudo update-initramfs -c -k "$CURRENT_KERNEL"
 
 # === Abschluss ===
 echo ""
@@ -98,4 +117,3 @@ echo "1. source .venv/bin/activate"
 echo "2. sudo .venv/bin/python main.py --capture_mode --project test_scan"
 echo "3. python main.py --project test_scan --infer --tui"
 echo ""
-

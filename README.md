@@ -91,7 +91,7 @@ Profile können mit `--profile NAME` geladen werden.
 
 ### Tests ausführen
 ```bash
-pytest test/
+pytest pytest/
 ```
 
 ### Neues Plugin erstellen
