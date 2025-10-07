@@ -217,15 +217,13 @@ class AnalysisController:
         clustered_client_df, client_feature_df = self._run_client_clustering_if_needed(self.state_obj)
         clustered_ap_df = self._run_ap_clustering_if_needed(self.state_obj)
 
-        if self.args.run_plugins is not None:
-            self._run_plugins(self.state_obj, self.new_events, clustered_client_df, client_feature_df)
-            
-        clustered_client_df, client_feature_df = None, None
         plugins_need_client_clusters = self.args.run_plugins is not None and "umap_plot" in (self.args.run_plugins or self.plugins.keys())
         if self.args.cluster_clients is not None or plugins_need_client_clusters:
             clustered_client_df, client_feature_df = cli.print_client_cluster_results(
                 self.args, self.state_obj, self.console
             )
+        else:
+            clustered_client_df, client_feature_df = None, None
 
         clustered_ap_df = None
         if self.args.cluster_aps is not None or self.args.export_graph or self.args.export_csv:
@@ -249,6 +247,8 @@ class AnalysisController:
             self.console.print(f"[cyan]Starte Training für Verhaltensmodell...[/cyan]")
             ml_training.train_behavioral_model(self.db_path, self.label_db_path, self.outdir / self.args.train_behavior_model)
         
+        if self.args.html_report:
+            self._generate_html_report(inference_results)
 
         self._save_state(self.state_obj, self.state_path)
     ################################################################################
@@ -291,7 +291,7 @@ class AnalysisController:
         except Exception as e:
             self.console.print(f"[red]Fehler beim Speichern des Zustands: {e}[/red]")
 
-    def _run_profiling(self, state_obj, label_db_path):
+    def _run_profiling(self):
         self.console.print("\n[bold cyan]Starte automatisches Geräte-Profiling...[/bold cyan]")
         device_map = {}
 
@@ -317,7 +317,7 @@ class AnalysisController:
             if not profile_iface or not profile_net:
                 self.console.print("[bold red]Fehler: Für den aktiven Scan müssen --profile-iface und --profile-net angegeben werden (oder in config.yaml gesetzt sein).[/bold red]")
             else:
-                all_macs_in_scan = list(self.state.clients.keys())
+                all_macs_in_scan = list(self.state_obj.clients.keys())
                 clients_with_ips = device_profiler.get_ips_for_macs_arp(profile_iface)
                 if clients_with_ips:
                     nmap_results = device_profiler.profile_devices_via_portscan(clients_with_ips)
@@ -351,12 +351,12 @@ class AnalysisController:
             return cli._handle_ap_clustering(self.args, state_obj, self.console)
         return None
 
-    def _run_plugins(self, state_obj, new_events, clustered_client_df, client_feature_df, outdir):
+    def _run_plugins(self, state_obj, new_events, clustered_client_df, client_feature_df):
         plugin_context = {
             "state": state_obj, "events": new_events,
             "clustered_client_df": clustered_client_df,
             "client_feature_df": client_feature_df,
-            "outdir": outdir, "console": self.console
+            "outdir": self.outdir, "console": self.console
         }
         plugins_to_run = self.args.run_plugins if self.args.run_plugins else self.plugins.keys()
         for name in plugins_to_run:
@@ -371,3 +371,79 @@ class AnalysisController:
                     logger.error(f"Plugin execution error for '{name}'", exc_info=True)
             else:
                 self.console.print(f"[yellow]Warnung: Plugin '{name}' nicht gefunden.[/yellow]")
+    
+    def _handle_inference_output(self, inference_results):
+        """Behandelt die Ausgabe der Inferenz-Ergebnisse."""
+        if not inference_results:
+            self.console.print("[yellow]Keine Inferenz-Ergebnisse verfügbar.[/yellow]")
+            return
+        
+        self.console.print(f"\n[bold cyan]SSID-BSSID Inferenz-Ergebnisse ({len(inference_results)} Paare):[/bold cyan]")
+        from rich.table import Table
+        table = Table()
+        table.add_column("SSID", style="cyan")
+        table.add_column("BSSID", style="magenta")
+        table.add_column("Score", justify="right")
+        table.add_column("Label", style="green")
+        
+        for result in sorted(inference_results, key=lambda x: x.score, reverse=True)[:20]:
+            table.add_row(
+                result.ssid,
+                result.bssid,
+                f"{result.score:.3f}",
+                result.label
+            )
+        self.console.print(table)
+        
+        if self.args.json:
+            import json
+            with open(self.args.json, 'w') as f:
+                json.dump([{"ssid": r.ssid, "bssid": r.bssid, "score": r.score, "label": r.label} for r in inference_results], f, indent=2)
+            self.console.print(f"[green]Ergebnisse in JSON gespeichert: {self.args.json}[/green]")
+    
+    def _handle_graph_export(self, state_obj, clustered_ap_df, clustered_client_df):
+        """Exportiert Netzwerk-Graphen für Gephi."""
+        if not self.args.export_graph and not self.args.export_csv:
+            return
+        
+        self.console.print("[cyan]Exportiere Netzwerk-Graph...[/cyan]")
+        try:
+            from . import analysis
+            if self.args.export_graph:
+                analysis.export_graph_for_gephi(
+                    state_obj, 
+                    self.args.export_graph,
+                    include_clients=self.args.graph_include_clients,
+                    min_activity=self.args.graph_min_activity,
+                    min_duration=self.args.graph_min_duration,
+                    clustered_df=clustered_ap_df
+                )
+                self.console.print(f"[green]Graph exportiert nach: {self.args.export_graph}[/green]")
+            
+            if self.args.export_csv:
+                csv_base = self.outdir / "graph_export"
+                analysis.export_graph_csv(
+                    state_obj,
+                    csv_base,
+                    include_clients=self.args.graph_include_clients,
+                    clustered_df=clustered_ap_df
+                )
+                self.console.print(f"[green]CSV-Dateien exportiert nach: {csv_base}_nodes.csv und {csv_base}_edges.csv[/green]")
+        except Exception as e:
+            self.console.print(f"[red]Fehler beim Graph-Export: {e}[/red]")
+            logger.error("Graph export error", exc_info=True)
+    
+    def _generate_html_report(self, inference_results):
+        """Generiert einen HTML-Report."""
+        try:
+            from . import reporting
+            self.console.print(f"[cyan]Generiere HTML-Report...[/cyan]")
+            reporting.generate_html_report(
+                self.state_obj,
+                self.args.html_report,
+                inference_results=inference_results
+            )
+            self.console.print(f"[green]HTML-Report erstellt: {self.args.html_report}[/green]")
+        except Exception as e:
+            self.console.print(f"[red]Fehler beim Erstellen des HTML-Reports: {e}[/red]")
+            logger.error("HTML report generation error", exc_info=True)

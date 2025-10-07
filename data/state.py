@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 import math
 
 from . import utils
-from .data_models import APState, ClientState, Welford
+from .data_models import APState, ClientState, Welford, EventType
 from .utils import is_local_admin_mac, parse_ies, is_valid_bssid
 
 logger = logging.getLogger(__name__)
@@ -27,52 +27,6 @@ def _create_default_seq_local_entry():
     """Erstellt einen Standardeintrag für das seq_local defaultdict."""
     return {"last_seq": None, "monotonic_count": 0}
 
-
-@dataclass
-class APState:
-    """Speichert den aggregierten Zustand eines Access Points."""
-    bssid: str
-    ssid: Optional[str] = None
-    first_seen: float = 0.0
-    last_seen: float = 0.0
-    count: int = 0
-    beacon_count: int = 0
-    probe_resp_count: int = 0
-    channel: Optional[int] = None
-    ies: Dict[int, List[str]] = field(default_factory=dict)
-    parsed_ies: Dict[str, any] = field(default_factory=dict)
-    rssi_w: Welford = field(default_factory=Welford)
-    beacon_intervals: Counter = field(default_factory=Counter)
-    cap_bits: Set[int] = field(default_factory=set)
-    last_beacon_timestamp: Optional[int] = None
-    uptime_seconds: Optional[float] = None
-    noise_w: Welford = field(default_factory=Welford)
-    fcs_error_count: int = 0
-
-@dataclass
-class ClientState:
-    """Speichert den aggregierten Zustand eines Client-Geräts."""
-    mac: str
-    first_seen: float = 0.0
-    last_seen: float = 0.0
-    count: int = 0
-    probes: Set[str] = field(default_factory=set)
-    seen_with: Set[str] = field(default_factory=set)
-    randomized: bool = False
-    is_in_powersave: bool = False
-    last_powersave_ts: float = 0.0
-    parsed_ies: Dict[str, any] = field(default_factory=dict)
-    all_packet_ts: List[float] = field(default_factory=list)
-    rssi_w: Welford = field(default_factory=Welford)
-    data_frame_count: int = 0
-    mgmt_frame_count: int = 0
-    power_save_transitions: int = 0
-    ip_address: Optional[str] = None
-    hostname: Optional[str] = None
-    mcs_rates: Counter = field(default_factory=Counter)
-    noise_w: Welford = field(default_factory=Welford)
-    fcs_error_count: int = 0
-    ie_order_hashes: Set[int] = field(default_factory=set)
 
 class WifiAnalysisState:
     """Kapselt den gesamten Analyse-Zustand."""
@@ -94,24 +48,6 @@ class WifiAnalysisState:
             count += 1
         logger.info("Zustand aus %d Events aufgebaut/aktualisiert: APs=%d, Clients=%d, SSIDs=%d", count, len(self.aps), len(self.clients), len(self.ssid_map))
 
-
-    def update_from_event(self, ev_iterator: dict, detailed_ies: bool = False):
-        """Akzeptiert einen Iterator, um Speicher zu sparen."""
-        logger.info("Baue/Aktualisiere Zustand aus Event-Stream auf...")
-        count = 0
-        for ev in ev_iterator:
-            self.update_from_event(ev, detailed_ies=detailed_ies)
-            count += 1
-        logger.info("Zustand aus %d Events aufgebaut/aktualisiert: APs=%d, Clients=%d, SSIDs=%d", count, len(self.aps), len(self.clients), len(self.ssid_map))
-
-    def build_from_events(self, ev_iterator: Iterable[Dict], detailed_ies: bool = False):
-        """Akzeptiert einen Iterator, um Speicher zu sparen."""
-        logger.info("Baue/Aktualisiere Zustand aus Event-Stream auf...")
-        count = 0
-        for ev in ev_iterator:
-            self.update_from_event(ev, detailed_ies=detailed_ies)
-            count += 1
-        logger.info("Zustand aus %d Events aufgebaut/aktualisiert: APs=%d, Clients=%d, SSIDs=%d", count, len(self.aps), len(self.clients), len(self.ssid_map))
 
     def update_from_event(self, ev: dict, detailed_ies: bool = False):
         ts, ev_type = ev["ts"], ev.get("type")

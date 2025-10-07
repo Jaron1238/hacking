@@ -165,7 +165,8 @@ def main():
         # --- Projekt- und Pfad-Setup ---
         if args.project:
             project_path = Path(args.project)
-            # KORREKTUR: Wir setzen nur noch 'outdir'. Der Controller leitet den Rest ab.
+            project_path.mkdir(parents=True, exist_ok=True)
+            (project_path / "db").mkdir(exist_ok=True)
             args.outdir = str(project_path)
             console.print(f"[bold green]Projekt '{args.project}' wird verwendet. Alle Dateien in: {project_path.resolve()}[/bold green]")
         cap = args.capture_mode
