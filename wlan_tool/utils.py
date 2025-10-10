@@ -28,7 +28,7 @@ OUI_SOURCES = [
         "format": "wireshark"
     }
 ]
-OUI_LOCAL_PATH = Path(__file__).parent.parent / "data" / "manuf"
+OUI_LOCAL_PATH = Path(__file__).parent / "assets" / "manuf"
 
 def download_oui_file():
     """

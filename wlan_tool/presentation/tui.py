@@ -11,7 +11,7 @@ class AnalysisTUI(App):
     """Eine interaktive Terminal-Benutzeroberfläche zur Analyse der Cluster-Ergebnisse."""
 
     TITLE = "WLAN Client Analyse"
-    CSS_PATH = str(Path(__file__).parent.parent.parent / "data" / "tui.css")
+    CSS_PATH = str(Path(__file__).parent.parent / "assets" / "templates" / "tui.css")
 
     # Daten werden beim Start der App übergeben
     clustered_df = pd.DataFrame()

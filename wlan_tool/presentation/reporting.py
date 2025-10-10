@@ -24,7 +24,7 @@ def generate_html_report(state: WifiAnalysisState, analysis_results: Dict[str, A
     
     # Use default template if no path provided
     if not template_path:
-        template_path = str(Path(__file__).parent / "template.html")
+        template_path = str(Path(__file__).parent.parent / "assets" / "templates" / "template.html")
     
     template_dir = Path(template_path).parent
     template_name = Path(template_path).name

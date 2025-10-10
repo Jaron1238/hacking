@@ -25,7 +25,7 @@ class LiveCaptureTUI(App):
     """Live Terminal-Benutzeroberfläche für die WiFi-Erfassung."""
 
     TITLE = "WLAN Live Capture Monitor"
-    CSS_PATH = str(__file__).replace("live_tui.py", "tui.css")
+    CSS_PATH = str(Path(__file__).parent.parent / "assets" / "templates" / "tui.css")
 
     # Reaktive Variablen
     devices_found = reactive(0)
