@@ -1,21 +1,15 @@
 # ===================================================================
-# Konfigurationsprofil für eine gründliche, 45-minütige Erfassung
+# Zentrale Konfiguration für das WLAN-Analyse-Tool
 # ===================================================================
 
 # --- Capture Settings ---
 capture:
   # Standard-Interface, das verwendet wird, wenn --iface nicht angegeben wird.
-  # Lassen Sie dies leer, um die interaktive Auswahl zu nutzen, oder tragen Sie
-  # Ihr bevorzugtes Monitor-Interface ein (z.B. "wlan0mon").
   interface: "mon0"
-
   # Gesamtdauer der Erfassung in Sekunden (45 Minuten = 2700 Sekunden)
   duration: 2700
-
   # Name der PCAP-Datei, die gespeichert wird, wenn --pcap angegeben wird.
-  # Wird durch --project oder --outdir in das entsprechende Verzeichnis verschoben.
   pcap_file: "capture.pcap"
-
 
 # --- Database Settings ---
 database:
@@ -23,32 +17,90 @@ database:
   path: "events1.db"
   # Standardname für die Label-Datenbank.
   label_db: "labels1.db"
+  # Batch-Größe für Datenbankoperationen
+  batch_size: 512
+  # Intervall für automatisches Flushen in Sekunden
+  flush_interval_s: 5.0
 
+# --- Sniffing & Channel Hopping ---
+channels:
+  # Kanäle zum Springen (2.4 GHz und 5 GHz)
+  to_hop: [1, 6, 11, 36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 112, 116, 132, 140, 149, 153, 157, 161, 165]
+  # Schlafintervall zwischen Kanalwechseln in Sekunden
+  hop_sleep_s: 0.3
 
 # --- Advanced Scanning Features ---
-# Hier werden alle neuen, intelligenten Scan-Funktionen aktiviert.
 scanning:
   # Aktiviert den zweistufigen Scan: Zuerst eine breite Suche, dann eine
   # gezielte Überwachung der aktivsten Kanäle.
   adaptive_scan_enabled: true
-
   # Dauer der initialen "Discovery"-Phase in Sekunden.
-  # 120 Sekunden (2 Minuten) sind ein guter Wert, um die meisten aktiven
-  # Geräte in der Umgebung zu entdecken.
   adaptive_scan_discovery_s: 120
-
   # Anzahl der besten Kanäle, auf die sich das Tool in der zweiten Phase
   # konzentrieren soll.
   adaptive_scan_top_n_channels: 6
-
-  # Wie stark die Top-Kanäle priorisiert werden. Ein Wert von 3 bedeutet,
-  # dass sie 3x so oft gescannt werden wie die restlichen Kanäle.
+  # Wie stark die Top-Kanäle priorisiert werden.
   adaptive_scan_priority_weight: 3
-
-  # Kanalbandbreite für den 5-GHz-Bereich. "80MHz" ist ein guter Kompromiss
-  # zwischen Abdeckung und Kompatibilität der Hardware.
+  # Kanalbandbreite für den 5-GHz-Bereich.
   bandwidth_5ghz: "80MHz"
-
-  # Kanalbandbreite für den 2,4-GHz-Bereich. "HT40" erfasst mehr Daten,
-  # wenn benachbarte Kanäle frei sind.
+  # Kanalbandbreite für den 2,4-GHz-Bereich.
   bandwidth_2_4ghz: "HT40"
+
+# --- Heuristisches Scoring ---
+heuristic:
+  weights:
+    beacon: 0.30
+    probe: 0.20
+    client: 0.25
+    rssi: 0.10
+    channel: 0.10
+    seq: 0.05
+  normalization:
+    beacon_count: 5.0
+    probe_resp_count: 5.0
+    supporting_clients: 4.0
+    rssi_std_max: 20.0
+    seq_support: 3.0
+
+# --- Analyse & Matching ---
+analysis:
+  score_label_high: 0.75
+  score_label_medium: 0.40
+  multi_ssid_threshold: 2
+  # Gewichtung für die Kombination von Heuristik und ML-Modell
+  ml_score_weight: 0.60
+  heuristic_score_weight: 0.40
+
+# --- State Management ---
+state:
+  # Schwellenwert für das Bereinigen alter Daten in Sekunden (2 Stunden)
+  pruning_threshold_s: 7200
+  # Intervall für das Bereinigen in Sekunden (20 Minuten)
+  pruning_interval_s: 1200
+
+# --- Client Clustering ---
+clustering:
+  client_feature_weights:
+    supports_11ax: 3.0
+    supports_11ac: 2.0
+    has_apple_ie: 2.5
+    has_ms_ie: 2.0
+    mimo_streams: 1.5
+    is_randomized_mac: 1.2
+    was_in_powersave: 1.2
+    probe_count: 1.0
+    seen_with_ap_count: 1.0
+
+# --- UI & Training ---
+ui:
+  default_min_score: 0.4
+  default_max_score: 0.75
+  max_candidates: 200
+  auto_retrain_min_confirmed_labels: 50
+
+# --- Client Klassifizierung ---
+device_types: []
+
+# --- Debugging ---
+debug:
+  log_packet_flow: false
