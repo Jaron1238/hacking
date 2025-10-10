@@ -43,7 +43,7 @@ Ein umfassendes WLAN-Analyse-Tool mit **Machine Learning**, **Advanced Clusterin
 - **Root-Rechte** für Packet Capture
 - **4GB RAM** (empfohlen für ML-Features)
 - **2GB freier Speicherplatz** (für Modelle und Daten)
-- **Wurde auf einem Raspberry Pi 4 mit Nexmon getestet
+- **Wurde auf einem Raspberry Pi 4 mit Nexmon getestet**
 
 
 ## 📦 **Installation**
