@@ -1,114 +1,133 @@
 #!/bin/bash
-# WLAN Analysis Tool - Setup mit Python-Autoupdate & Backup
-# Raspberry Pi / Debian-basiert
-# Schützt alte Kernel und verhindert initramfs-Fehler
+# Sicheres Setup-Skript für WLAN Analysis Tool
+# Installiert eine spezifische Python-Version sicher mit pyenv
+# und richtet eine virtuelle Umgebung ein.
 
-set -e
+set -e # Beendet das Skript sofort, wenn ein Befehl fehlschlägt
 
-echo "=================================================="
-echo "WLAN Analysis Tool - Setup (mit Python-Update)"
-echo "=================================================="
-echo ""
+# --- Konfiguration ---
+# Hier kannst du die gewünschte Python-Version eintragen.
+# '3.14.0' für eine spezifische Version.
+# Oder setze es auf 'LATEST' für die automatisch neueste stabile Version.
+PYTHON_VERSION_WANTED="3.14.0"
 
-# Farben
+# --- Farben für die Ausgabe ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# === Aktuellen Kernel merken ===
-CURRENT_KERNEL=$(uname -r)
-echo -e "${YELLOW}Aktueller Kernel: $CURRENT_KERNEL${NC}"
-
-# === Alte Kernel erkennen und von initramfs-Update ausschließen ===
-echo -e "${YELLOW}Suche alte Kernel und sperre initramfs-Updates...${NC}"
-KERNELS=$(ls /boot/vmlinuz-* | sed 's#/boot/vmlinuz-##')
-
-for k in $KERNELS; do
-    if [ "$k" != "$CURRENT_KERNEL" ]; then
-        echo " - Ausschließen: $k"
-        sudo touch /etc/initramfs-tools/conf.d/no-update-$k
-        # Kernel-Pakete ebenfalls auf Hold setzen, falls neu
-        sudo apt-mark hold linux-image-$k linux-headers-$k || true
-    fi
-done
-
-# === System-Update ===
-echo -e "${YELLOW}System wird aktualisiert...${NC}"
-sudo apt update -y
-sudo apt upgrade -y
-sudo apt install -y build-essential wget curl git python3 python3-venv python3-pip \
-libssl-dev zlib1g-dev libncurses5-dev libffi-dev libsqlite3-dev libreadline-dev \
-libbz2-dev liblzma-dev
-
-# === Python-Backup ===
-if command -v python3 &> /dev/null; then
-    PYTHON_VER=$(python3 --version | awk '{print $2}')
-    BACKUP_DIR="/usr/local/python_backup_${PYTHON_VER}"
-    echo -e "${YELLOW}Backup der aktuellen Python-Version ($PYTHON_VER) wird erstellt...${NC}"
-    sudo mkdir -p "$BACKUP_DIR"
-    sudo cp -r /usr/bin/python3* "$BACKUP_DIR" 2>/dev/null || true
-    sudo cp -r /usr/local/bin/python3* "$BACKUP_DIR" 2>/dev/null || true
-    sudo cp -r /usr/lib/python3* "$BACKUP_DIR" 2>/dev/null || true
-    echo -e "${GREEN}✓ Backup erstellt unter: $BACKUP_DIR${NC}"
-else
-    echo -e "${YELLOW}Python3 nicht installiert – kein Backup nötig${NC}"
-fi
-
-# === Neueste Python-Version abrufen ===
-echo "Suche nach der neuesten Python-Version..."
-LATEST=$(wget -qO- https://www.python.org/ftp/python/ | grep -oP '(?<=href=")[0-9]+\.[0-9]+\.[0-9]+(?=/")' | sort -V | tail -1)
-echo -e "${GREEN}Neueste Version: Python $LATEST${NC}"
-
-# === Python aktualisieren falls nötig ===
-if python3 --version 2>/dev/null | grep -q "$LATEST"; then
-    echo -e "${GREEN}Python ist bereits auf dem neuesten Stand ($LATEST).${NC}"
-else
-    echo -e "${YELLOW}Installiere Python $LATEST aus Source...${NC}"
-    cd /tmp
-    wget https://www.python.org/ftp/python/$LATEST/Python-$LATEST.tgz
-    tar -xzf Python-$LATEST.tgz
-    cd Python-$LATEST
-    ./configure --enable-optimizations
-    make -j$(nproc)
-    sudo make altinstall
-    NEW_BIN=$(ls /usr/local/bin/python3.* | sort -V | tail -1)
-    sudo ln -sf "$NEW_BIN" /usr/local/bin/python3
-    hash -r
-    echo -e "${GREEN}✓ Python $LATEST erfolgreich installiert.${NC}"
-fi
-
-# === Virtual Environment ===
-VENV_DIR="$PWD/.venv"
-echo "Erstelle Virtual Environment..."
-if [ -d "$VENV_DIR" ]; then
-    echo -e "${YELLOW}Virtual Environment existiert bereits${NC}"
-else
-    python3 -m venv "$VENV_DIR"
-    echo -e "${GREEN}✓ Virtual Environment erstellt${NC}"
-fi
-
-# === Aktivieren & Dependencies ===
-source "$VENV_DIR/bin/activate"
-echo "Aktualisiere pip..."
-pip install --upgrade pip --quiet
-echo "Installiere Dependencies..."
-pip install --upgrade -r requirements.txt
-
-# === Initramfs für aktiven Kernel ===
-echo -e "${YELLOW}Erstelle initramfs nur für den aktiven Kernel ($CURRENT_KERNEL)...${NC}"
-sudo update-initramfs -c -k "$CURRENT_KERNEL"
-
-# === Abschluss ===
-echo ""
 echo -e "${GREEN}=================================================="
-echo "Setup erfolgreich abgeschlossen!"
+echo "Sicheres Setup für WLAN Analysis Tool"
+echo "Ziel-Python-Version: $PYTHON_VERSION_WANTED"
 echo "==================================================${NC}"
 echo ""
-echo "Backup gespeichert unter: $BACKUP_DIR"
+
+# --- Schritt 1: System-Update & Abhängigkeiten für pyenv ---
+echo -e "${YELLOW}Schritt 1: System wird aktualisiert und Build-Abhängigkeiten werden installiert...${NC}"
+sudo apt update
+sudo apt upgrade -y
+# Notwendige Pakete zum Kompilieren von Python
+sudo apt install -y build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev curl git \
+libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev \
+python3-venv python3-pip
+
+# Alte Kernel und ungenutzte Pakete sicher entfernen
+echo -e "${YELLOW}Entferne alte Kernel und räume das System auf...${NC}"
+sudo apt autoremove -y
 echo ""
-echo "Nächste Schritte:"
-echo "1. source .venv/bin/activate"
-echo "2. sudo .venv/bin/python main.py --capture_mode --project test_scan"
-echo "3. python main.py --project test_scan --infer --tui"
+
+# --- Schritt 2: pyenv installieren und einrichten ---
+echo -e "${YELLOW}Schritt 2: pyenv wird installiert...${NC}"
+if [ -d "$HOME/.pyenv" ]; then
+    echo "pyenv ist bereits installiert."
+else
+    # Offizieller pyenv-Installer
+    curl https://pyenv.run | bash
+fi
+
+# pyenv zur Shell hinzufügen, damit es sofort verfügbar ist
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+
+# Sicherstellen, dass die Konfiguration auch für zukünftige Logins gilt
+grep -qF 'PYENV_ROOT' ~/.bashrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+grep -qF 'pyenv init' ~/.bashrc || {
+  echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+  echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+}
+echo ""
+
+# --- Schritt 3: Gewünschte Python-Version installieren ---
+if [ "$PYTHON_VERSION_WANTED" == "LATEST" ]; then
+    echo -e "${YELLOW}Suche nach der neuesten stabilen Python-Version...${NC}"
+    # Findet die letzte stabile Version (keine -rc oder -dev)
+    PYTHON_VERSION_TO_INSTALL=$(pyenv install --list | grep -E "^\s*[0-9]+\.[0-9]+\.[0-9]+$" | tail -1 | tr -d ' ')
+    echo "Neueste gefundene Version: $PYTHON_VERSION_TO_INSTALL"
+else
+    PYTHON_VERSION_TO_INSTALL=$PYTHON_VERSION_WANTED
+fi
+
+echo -e "${YELLOW}Schritt 3: Installiere Python $PYTHON_VERSION_TO_INSTALL mit pyenv...${NC}"
+if pyenv versions --bare | grep -q "^$PYTHON_VERSION_TO_INSTALL$"; then
+    echo "Python $PYTHON_VERSION_TO_INSTALL ist bereits installiert."
+else
+    echo "Die Installation wird eine Weile dauern. Bitte habe Geduld."
+    # Kompiliert und installiert die gewünschte Python-Version
+    pyenv install "$PYTHON_VERSION_TO_INSTALL"
+fi
+echo ""
+
+# --- Schritt 4: Projekt für die neue Python-Version einrichten ---
+VENV_DIR="$PWD/.venv"
+echo -e "${YELLOW}Schritt 4: Richte das Projekt für Python $PYTHON_VERSION_TO_INSTALL ein...${NC}"
+
+# Legt die Python-Version für das aktuelle Verzeichnis fest
+pyenv local "$PYTHON_VERSION_TO_INSTALL"
+echo "Python-Version für dieses Verzeichnis auf $PYTHON_VERSION_TO_INSTALL gesetzt."
+
+# Erstellt die virtuelle Umgebung mit der neuen Python-Version
+echo "Erstelle Virtual Environment unter '$VENV_DIR'..."
+if [ -d "$VENV_DIR" ]; then
+    # Sicherstellen, dass die venv auch mit der richtigen Python-Version erstellt wurde
+    VENV_PYTHON_VERSION=$(source $VENV_DIR/bin/activate && python --version && deactivate | awk '{print $2}')
+    if [[ "$VENV_PYTHON_VERSION" != *"$PYTHON_VERSION_TO_INSTALL"* ]]; then
+        echo -e "${YELLOW}Die existierende venv nutzt eine falsche Python-Version. Sie wird neu erstellt.${NC}"
+        rm -rf "$VENV_DIR"
+        python -m venv "$VENV_DIR"
+    else
+        echo "Virtual Environment existiert bereits und nutzt die korrekte Python-Version."
+    fi
+else
+    python -m venv "$VENV_DIR"
+fi
+echo ""
+
+# --- Schritt 5: Abhängigkeiten in der venv installieren ---
+echo -e "${YELLOW}Schritt 5: Installiere Python-Pakete in der Virtual Environment...${NC}"
+source "$VENV_DIR/bin/activate"
+
+echo "Aktualisiere pip..."
+pip install --upgrade pip
+echo "Installiere Pakete aus requirements.txt..."
+pip install -r requirements.txt
+
+echo -e "${GREEN}✓ Alle Python-Pakete wurden erfolgreich in '.venv' installiert.${NC}"
+echo ""
+
+# --- Abschluss ---
+echo -e "${GREEN}=================================================="
+echo "Setup erfolgreich und sicher abgeschlossen!"
+echo "Python-Version: $(python --version)"
+echo "==================================================${NC}"
+echo ""
+echo "Das System wurde NICHT durch unsichere Änderungen gefährdet."
+echo ""
+echo "Nächste Schritte, um das Tool zu verwenden:"
+echo -e "1. Aktiviere die Umgebung: ${YELLOW}source .venv/bin/activate${NC}"
+echo -e "2. Führe dein Programm aus (Beispiel): ${YELLOW}python main.py --deine-optionen${NC}"
+echo -e "3. Wenn du fertig bist, deaktiviere die Umgebung: ${YELLOW}deactivate${NC}"
 echo ""
