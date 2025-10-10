@@ -23,6 +23,10 @@ from ..exceptions import (
     DatabaseError, FileSystemError, ValidationError, 
     handle_errors, retry_on_error, ErrorContext, ErrorRecovery
 )
+from ..constants import (
+    ErrorCodes, Constants, ErrorMessages, 
+    get_error_message, get_constant
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +72,7 @@ def db_conn_ctx(path: str):
                     ) from e
             
             # Verbinde zur Datenbank
-            conn = sqlite3.connect(path, timeout=30.0)
+            conn = sqlite3.connect(path, timeout=Constants.DB_CONNECTION_TIMEOUT)
             conn.row_factory = sqlite3.Row
             
             # Setze pragmas für bessere Performance und Fehlerbehandlung
@@ -84,8 +88,8 @@ def db_conn_ctx(path: str):
         if conn:
             conn.rollback()
         raise DatabaseError(
-            f"Database operation failed: {e}",
-            error_code="SQLITE_ERROR",
+            get_error_message(ErrorCodes.DB_CONNECTION_FAILED, details=str(e)),
+            error_code=ErrorCodes.DB_CONNECTION_FAILED.value,
             details={"db_path": path, "sqlite_error": str(e)}
         ) from e
     except Exception as e:

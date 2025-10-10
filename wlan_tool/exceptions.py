@@ -6,10 +6,14 @@ Zentrale Exception-Klassen und Error-Handler für das WLAN-Analyse-Tool.
 
 import logging
 import traceback
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any, Callable, Type, Union, List, Tuple, TypeVar, Generic
 from pathlib import Path
 import functools
 import sys
+from datetime import datetime
+
+T = TypeVar('T')
+F = TypeVar('F', bound=Callable[..., Any])
 
 
 # ==============================================================================
@@ -19,15 +23,19 @@ import sys
 class WLANToolError(Exception):
     """Basis-Exception für alle WLAN-Tool-Fehler."""
     
-    def __init__(self, message: str, error_code: Optional[str] = None, 
-                 details: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self, 
+        message: str, 
+        error_code: Optional[str] = None, 
+        details: Optional[Dict[str, Any]] = None
+    ) -> None:
         super().__init__(message)
-        self.message = message
-        self.error_code = error_code
-        self.details = details or {}
-        self.timestamp = None
+        self.message: str = message
+        self.error_code: Optional[str] = error_code
+        self.details: Dict[str, Any] = details or {}
+        self.timestamp: Optional[datetime] = None
     
-    def __str__(self):
+    def __str__(self) -> str:
         base_msg = f"WLANToolError: {self.message}"
         if self.error_code:
             base_msg += f" (Code: {self.error_code})"
@@ -91,12 +99,12 @@ class ResourceError(WLANToolError):
 # ==============================================================================
 
 def handle_errors(
-    error_type: type = WLANToolError,
+    error_type: Type[Exception] = WLANToolError,
     error_code: Optional[str] = None,
     default_return: Any = None,
     log_error: bool = True,
     reraise: bool = False
-):
+) -> Callable[[F], F]:
     """
     Decorator für automatische Fehlerbehandlung.
     
@@ -106,10 +114,13 @@ def handle_errors(
         default_return: Rückgabewert bei Fehler
         log_error: Ob der Fehler geloggt werden soll
         reraise: Ob die Exception erneut geworfen werden soll
+    
+    Returns:
+        Decorated function with error handling
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
             except error_type as e:
@@ -141,7 +152,7 @@ def handle_errors(
                 else:
                     return default_return
         
-        return wrapper
+        return wrapper  # type: ignore
     return decorator
 
 
