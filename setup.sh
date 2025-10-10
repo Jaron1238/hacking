@@ -9,7 +9,7 @@ set -e # Beendet das Skript sofort, wenn ein Befehl fehlschlägt
 # Hier kannst du die gewünschte Python-Version eintragen.
 # '3.14.0' für eine spezifische Version.
 # Oder setze es auf 'LATEST' für die automatisch neueste stabile Version.
-PYTHON_VERSION_WANTED="3.14.0"
+PYTHON_VERSION_WANTED="LATEST"
 
 # --- Farben für die Ausgabe ---
 RED='\033[0;31m'
