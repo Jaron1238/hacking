@@ -16,6 +16,7 @@ Ein umfassendes WLAN-Analyse-Tool mit Machine Learning-Funktionen zur Erfassung,
 - Python 3.8+
 - Linux mit WLAN-Interface (Monitor-Mode fähig)
 - Root-Rechte für Packet Capture
+- Wurde auf einem Raspberry Pi 4 mit    Nexmon getestet
 
 ## Installation
 
