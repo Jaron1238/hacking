@@ -17,6 +17,10 @@ from .. import config
 from ..storage.state import WifiAnalysisState
 from ..storage.data_models import ClientState, APState, InferenceResult
 from ..utils import intelligent_vendor_lookup, ie_fingerprint_hash, lookup_vendor
+from ..exceptions import (
+    AnalysisError, ValidationError, ResourceError,
+    handle_errors, retry_on_error, ErrorContext, ErrorRecovery
+)
 
 
 import pandas as pd
@@ -152,26 +156,58 @@ def score_pairs_with_recency_and_matching(state: WifiAnalysisState, model=None) 
         results.append(result)
     return sorted(results, key=lambda r: r.score, reverse=True)
 
+@handle_errors(AnalysisError, "CLIENT_FEATURES_ERROR", default_return=None)
 def features_for_client(client_state: ClientState) -> Optional[Dict[str, any]]:
-    if not client_state: return None
-    parsed = client_state.parsed_ies
-    ht_caps = parsed.get("ht_caps", {})
-    vht_caps = parsed.get("vht_caps", {})
-    return {
-        "vendor": intelligent_vendor_lookup(client_state.mac, client_state) or "Unknown",
-        "supports_11n": 1 if "802.11n" in parsed.get("standards", []) else 0,
-        "supports_11ac": 1 if "802.11ac" in parsed.get("standards", []) else 0,
-        "supports_11ax": 1 if "802.11ax" in parsed.get("standards", []) else 0,
-        "probe_count": len(client_state.probes),
-        "seen_with_ap_count": len(client_state.seen_with),
-        "was_in_powersave": 1 if client_state.last_powersave_ts > 0 else 0,
-        "is_randomized_mac": 1 if client_state.randomized else 0,
-        "ht_40mhz_support": 1 if ht_caps.get("40mhz_support") else 0,
-        "vht_160mhz_support": 1 if vht_caps.get("160mhz_support") else 0,
-        "mimo_streams": ht_caps.get("streams", 0),
-        "has_apple_ie": 1 if parsed.get("vendor_specific", {}).get("Apple") else 0,
-        "has_ms_ie": 1 if parsed.get("vendor_specific", {}).get("Microsoft") else 0,
-    }
+    """Extrahiere Client-Features mit Fehlerbehandlung."""
+    with ErrorContext("client_features_extraction", "CLIENT_FEATURES_ERROR"):
+        if not client_state:
+            raise ValidationError(
+                "Client state is None",
+                error_code="NULL_CLIENT_STATE",
+                details={"function": "features_for_client"}
+            )
+        
+        if not isinstance(client_state, ClientState):
+            raise ValidationError(
+                f"Invalid client state type: {type(client_state)}",
+                error_code="INVALID_CLIENT_STATE_TYPE",
+                details={"expected": "ClientState", "actual": str(type(client_state))}
+            )
+        
+        try:
+            parsed = client_state.parsed_ies or {}
+            ht_caps = parsed.get("ht_caps", {})
+            vht_caps = parsed.get("vht_caps", {})
+            
+            # Validiere kritische Felder
+            if not hasattr(client_state, 'mac') or not client_state.mac:
+                raise ValidationError(
+                    "Client state missing MAC address",
+                    error_code="MISSING_MAC_ADDRESS",
+                    details={"client_state": str(client_state)}
+                )
+            
+            return {
+                "vendor": intelligent_vendor_lookup(client_state.mac, client_state) or "Unknown",
+                "supports_11n": 1 if "802.11n" in parsed.get("standards", []) else 0,
+                "supports_11ac": 1 if "802.11ac" in parsed.get("standards", []) else 0,
+                "supports_11ax": 1 if "802.11ax" in parsed.get("standards", []) else 0,
+                "probe_count": len(client_state.probes) if hasattr(client_state, 'probes') else 0,
+                "seen_with_ap_count": len(client_state.seen_with) if hasattr(client_state, 'seen_with') else 0,
+                "was_in_powersave": 1 if getattr(client_state, 'last_powersave_ts', 0) > 0 else 0,
+                "is_randomized_mac": 1 if getattr(client_state, 'randomized', False) else 0,
+                "ht_40mhz_support": 1 if ht_caps.get("40mhz_support") else 0,
+                "vht_160mhz_support": 1 if vht_caps.get("160mhz_support") else 0,
+                "mimo_streams": ht_caps.get("streams", 0),
+                "has_apple_ie": 1 if parsed.get("vendor_specific", {}).get("Apple") else 0,
+                "has_ms_ie": 1 if parsed.get("vendor_specific", {}).get("Microsoft") else 0,
+            }
+        except Exception as e:
+            raise AnalysisError(
+                f"Failed to extract client features: {e}",
+                error_code="CLIENT_FEATURES_EXTRACTION_FAILED",
+                details={"mac": getattr(client_state, 'mac', 'unknown'), "original_error": str(e)}
+            ) from e
 
 def features_for_client_behavior(client_state: ClientState) -> Optional[Dict[str, any]]:
     """Extrahiert technische, Verhaltens- und Session-Merkmale."""
@@ -312,6 +348,7 @@ def find_optimal_k_elbow_and_silhouette(X_scaled, max_k: Optional[int] = None) -
         logger.warning("Konnte optimale Cluster-Anzahl nicht bestimmen.")
     return final_k
 
+@handle_errors(AnalysisError, "CLIENT_CLUSTERING_ERROR", default_return=(None, None))
 def cluster_clients(
     state: WifiAnalysisState, 
     n_clusters: int = 5, 
@@ -319,20 +356,72 @@ def cluster_clients(
     correlate_macs: bool = True,
     algo: str = "kmeans"
 ) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
-    if KMeans is None or DBSCAN is None:
-        logger.error("scikit-learn wird benötigt."); return None, None
-    
-    df = prepare_client_feature_dataframe(state, correlate_macs=correlate_macs)
-    
-    if df is None or df.empty:
-        logger.warning("Keine Client-Daten für das Clustering verfügbar."); return None, None
+    """Clustere Clients mit Fehlerbehandlung."""
+    with ErrorContext("client_clustering", "CLIENT_CLUSTERING_ERROR"):
+        # Validiere Parameter
+        if not isinstance(state, WifiAnalysisState):
+            raise ValidationError(
+                f"Invalid state type: {type(state)}",
+                error_code="INVALID_STATE_TYPE",
+                details={"expected": "WifiAnalysisState", "actual": str(type(state))}
+            )
+        
+        if not isinstance(n_clusters, int) or n_clusters <= 0:
+            raise ValidationError(
+                f"Invalid n_clusters: {n_clusters}",
+                error_code="INVALID_N_CLUSTERS",
+                details={"n_clusters": n_clusters}
+            )
+        
+        if algo not in ["kmeans", "dbscan"]:
+            raise ValidationError(
+                f"Invalid clustering algorithm: {algo}",
+                error_code="INVALID_CLUSTERING_ALGO",
+                details={"algo": algo, "supported": ["kmeans", "dbscan"]}
+            )
+        
+        # Prüfe Abhängigkeiten
+        if KMeans is None or DBSCAN is None:
+            raise ResourceError(
+                "scikit-learn is required for clustering",
+                error_code="MISSING_SKLEARN",
+                details={"function": "cluster_clients"}
+            )
+        
+        try:
+            df = prepare_client_feature_dataframe(state, correlate_macs=correlate_macs)
+            
+            if df is None or df.empty:
+                logger.warning("No client data available for clustering")
+                return None, None
 
-    df.fillna(0, inplace=True)
-    mac_addresses = df['mac']; original_macs = df['original_macs']; vendor_strings = df['vendor']
-    df_numeric = pd.get_dummies(df.drop(columns=['mac', 'original_macs', 'vendor']))
-    
-    X_scaled = StandardScaler().fit_transform(df_numeric)
-    data_to_cluster = X_scaled
+            # Validiere DataFrame-Struktur
+            required_columns = ['mac', 'original_macs', 'vendor']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                raise ValidationError(
+                    f"Missing required columns: {missing_columns}",
+                    error_code="MISSING_DF_COLUMNS",
+                    details={"missing_columns": missing_columns, "available_columns": list(df.columns)}
+                )
+
+            df.fillna(0, inplace=True)
+            mac_addresses = df['mac']
+            original_macs = df['original_macs']
+            vendor_strings = df['vendor']
+            
+            # Erstelle numerische Features
+            df_numeric = pd.get_dummies(df.drop(columns=['mac', 'original_macs', 'vendor']))
+            
+            if df_numeric.empty:
+                raise AnalysisError(
+                    "No numeric features available for clustering",
+                    error_code="NO_NUMERIC_FEATURES",
+                    details={"df_shape": df.shape, "numeric_shape": df_numeric.shape}
+                )
+            
+            X_scaled = StandardScaler().fit_transform(df_numeric)
+            data_to_cluster = X_scaled
 
     if use_encoder_path and ClientAutoencoder:
         logger.info("Autoencoder wird verwendet. Manuelle Feature-Gewichtung wird übersprungen.")
