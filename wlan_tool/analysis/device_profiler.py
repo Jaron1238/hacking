@@ -1,7 +1,10 @@
 # data/device_profiler.py
 
 import logging
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
+import hashlib
+import numpy as np
+from collections import defaultdict, Counter
 
 try:
     import upnpclient
@@ -15,7 +18,7 @@ try:
     import nmap
 except ImportError:
     nmap = None
-from . import config
+from .. import config
 try:
     from fritzconnection.lib.fritzhosts import FritzHosts
     from fritzconnection import FritzConnection
@@ -24,8 +27,129 @@ except ImportError:
     FritzConnection = None
 
 from scapy.all import srp, Ether, ARP, conf, arping
+from .. import utils
 
 logger = logging.getLogger(__name__)
+
+def create_device_fingerprint(client_state) -> str:
+    """
+    Erstellt einen erweiterten Geräte-Fingerprint basierend auf:
+    - IE-Reihenfolge (ie_order_hash)
+    - Paket-Timing (all_packet_ts)
+    - Technische Merkmale
+    """
+    if not client_state:
+        return ""
+    
+    # Sammle verschiedene Fingerprint-Komponenten
+    fingerprint_parts = []
+    
+    # 1. IE-Reihenfolge Hash (bereits in client_state.ie_order_hashes)
+    if client_state.ie_order_hashes:
+        ie_hashes = sorted(list(client_state.ie_order_hashes))
+        fingerprint_parts.append(f"ie_order:{hash(tuple(ie_hashes))}")
+    
+    # 2. Paket-Timing-Muster
+    if len(client_state.all_packet_ts) > 1:
+        intervals = np.diff(client_state.all_packet_ts)
+        if len(intervals) > 0:
+            # Charakteristische Timing-Merkmale
+            timing_features = [
+                f"mean_interval:{np.mean(intervals):.3f}",
+                f"std_interval:{np.std(intervals):.3f}",
+                f"min_interval:{np.min(intervals):.3f}",
+                f"max_interval:{np.max(intervals):.3f}",
+                f"burst_pattern:{len(intervals[intervals < 0.1])}"  # Kurze Intervalle (Bursts)
+            ]
+            fingerprint_parts.extend(timing_features)
+    
+    # 3. Technische Merkmale
+    parsed_ies = client_state.parsed_ies
+    if parsed_ies:
+        tech_features = []
+        
+        # WiFi-Standards
+        standards = parsed_ies.get("standards", [])
+        if standards:
+            tech_features.append(f"standards:{','.join(sorted(standards))}")
+        
+        # MIMO-Streams
+        ht_caps = parsed_ies.get("ht_caps", {})
+        if ht_caps.get("streams"):
+            tech_features.append(f"mimo_streams:{ht_caps['streams']}")
+        
+        # Vendor-spezifische IEs
+        vendor_ies = parsed_ies.get("vendor_specific", {})
+        if vendor_ies:
+            vendors = sorted(vendor_ies.keys())
+            tech_features.append(f"vendors:{','.join(vendors)}")
+        
+        fingerprint_parts.extend(tech_features)
+    
+    # 4. Verhaltensmerkmale
+    behavior_features = []
+    
+    # Probe-Pattern
+    if client_state.probes:
+        probe_count = len(client_state.probes)
+        behavior_features.append(f"probe_count:{probe_count}")
+        
+        # Spezifische SSIDs (erste 3)
+        specific_probes = [p for p in client_state.probes if p != "<broadcast>"][:3]
+        if specific_probes:
+            behavior_features.append(f"probes:{','.join(specific_probes)}")
+    
+    # Power Save Verhalten
+    if client_state.last_powersave_ts > 0:
+        behavior_features.append("powersave:true")
+    
+    # Randomisierte MAC
+    if client_state.randomized:
+        behavior_features.append("randomized_mac:true")
+    
+    fingerprint_parts.extend(behavior_features)
+    
+    # Kombiniere alle Teile zu einem Hash
+    fingerprint_string = "|".join(sorted(fingerprint_parts))
+    return hashlib.md5(fingerprint_string.encode()).hexdigest()
+
+def classify_device_by_fingerprint(fingerprint: str, known_fingerprints: Dict[str, str]) -> Optional[str]:
+    """
+    Klassifiziert ein Gerät basierend auf seinem Fingerprint.
+    """
+    return known_fingerprints.get(fingerprint)
+
+def build_fingerprint_database(state) -> Dict[str, str]:
+    """
+    Baut eine Datenbank von Geräte-Fingerprints auf.
+    """
+    fingerprint_db = {}
+    
+    for mac, client_state in state.clients.items():
+        fingerprint = create_device_fingerprint(client_state)
+        if fingerprint:
+            # Verwende den intelligenten Vendor-Lookup als Basis-Klassifizierung
+            vendor = utils.intelligent_vendor_lookup(mac, client_state) or "Unknown"
+            fingerprint_db[fingerprint] = vendor
+    
+    return fingerprint_db
+
+def correlate_devices_by_fingerprint(state) -> Dict[str, List[str]]:
+    """
+    Korreliert Geräte basierend auf ähnlichen Fingerprints.
+    """
+    fingerprint_groups = defaultdict(list)
+    
+    for mac, client_state in state.clients.items():
+        fingerprint = create_device_fingerprint(client_state)
+        if fingerprint:
+            fingerprint_groups[fingerprint].append(mac)
+    
+    # Filtere Gruppen mit mehr als einem Gerät
+    correlated_groups = {fp: macs for fp, macs in fingerprint_groups.items() if len(macs) > 1}
+    
+    logger.info(f"Fand {len(correlated_groups)} Gruppen von Geräten mit identischen Fingerprints.")
+    return correlated_groups
 def load_device_rules() -> List[Dict]:
     """Lädt die Regex-Regeln aus der device_rules.yaml."""
     rules_path = "/home/pi/hacking/device_rules.yaml"

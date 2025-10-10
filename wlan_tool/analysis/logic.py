@@ -13,10 +13,10 @@ import xml.etree.ElementTree as ET
 from datetime import date
 
 # Relative Imports
-from . import config
-from .state import WifiAnalysisState
-from .data_models import ClientState, APState, InferenceResult
-from .utils import intelligent_vendor_lookup, ie_fingerprint_hash, lookup_vendor
+from .. import config
+from ..storage.state import WifiAnalysisState
+from ..storage.data_models import ClientState, APState, InferenceResult
+from ..utils import intelligent_vendor_lookup, ie_fingerprint_hash, lookup_vendor
 
 
 import pandas as pd
@@ -27,8 +27,9 @@ import numpy as np
 import networkx as nx
 from networkx import Graph, MultiGraph
 import torch
+from datetime import datetime
 try:
-    from .ki_models import ClientAutoencoder
+    from .models import ClientAutoencoder
 except ImportError:
     ClientAutoencoder = None
 
@@ -178,9 +179,6 @@ def features_for_client_behavior(client_state: ClientState) -> Optional[Dict[str
     if len(client_state.all_packet_ts) < 5: return None
     
     # --- Standard-Verhaltensmerkmale ---
-    intervals = np.diff(client_state.all_packet_ts)
-    packet_interval_mean = np.mean(intervals) if len(intervals) > 0 else 0
-    packet_interval_std = np.std(intervals) if len(intervals) > 0 else 0
     intervals = np.diff(client_state.all_packet_ts)
     packet_interval_mean = np.mean(intervals) if len(intervals) > 0 else 0
     packet_interval_std = np.std(intervals) if len(intervals) > 0 else 0
@@ -519,7 +517,8 @@ def _build_export_graph(
     """
     
     G = nx.Graph()
-    G.graph['mode'] = 'static'
+    G.graph['mode'] = 'dynamic'
+    G.graph['timeformat'] = 'datetime'
     
     for _, row in clustered_ap_df.iterrows():
         bssid_str = str(row['bssid'])
@@ -528,6 +527,9 @@ def _build_export_graph(
         ap_state = aps_to_export[bssid_str]
         vendor_str = str(row.get('vendor', 'Unknown'))
         
+        # Convert timestamps to ISO format for Gephi timeline animation
+        start_iso = datetime.fromtimestamp(ap_state.first_seen).isoformat()
+        end_iso = datetime.fromtimestamp(ap_state.last_seen).isoformat()
         interval_string = f"<[{ap_state.first_seen}, {ap_state.last_seen}]>"
         roaming_support = bool(row.get('supports_11k') or row.get('supports_11v') or row.get('supports_11r'))
 
@@ -541,7 +543,9 @@ def _build_export_graph(
             roaming_support=roaming_support,
             channel=int(row['channel']),
             rssi_mean=float(row['rssi_mean']),
-            time_interval=interval_string
+            time_interval=interval_string,
+            start=start_iso,
+            end=end_iso
         )
 
     if include_clients:
@@ -554,6 +558,9 @@ def _build_export_graph(
             }
 
         for mac, client_state in clients_to_export.items():
+            # Convert timestamps to ISO format for Gephi timeline animation
+            start_iso = datetime.fromtimestamp(client_state.first_seen).isoformat()
+            end_iso = datetime.fromtimestamp(client_state.last_seen).isoformat()
             interval_string = f"<[{client_state.first_seen}, {client_state.last_seen}]>"
             behavior_features = features_for_client_behavior(client_state) or {}
 
@@ -566,6 +573,8 @@ def _build_export_graph(
                 activity=int(client_state.count),
                 is_randomized=bool(client_state.randomized),
                 time_interval=interval_string,
+                start=start_iso,
+                end=end_iso,
                 avg_datarate=behavior_features.get("avg_mcs_rate", 0.0),
                 power_save_rate=behavior_features.get("power_save_rate", 0.0),
                 probed_ssid_count=behavior_features.get("probed_ssid_diversity", 0),
@@ -578,7 +587,11 @@ def _build_export_graph(
                 if G.has_node(mac) and G.has_node(bssid):
                     rssi_dbm = float(client_state.rssi_w.mean if client_state.rssi_w.n > 0 else -100)
                     positive_weight = max(0.1, 100 + rssi_dbm)
-                    G.add_edge(mac, bssid, kind='Association', weight=positive_weight)
+                    # Add ISO timestamps for edge timeline animation
+                    edge_start_iso = datetime.fromtimestamp(client_state.first_seen).isoformat()
+                    edge_end_iso = datetime.fromtimestamp(client_state.last_seen).isoformat()
+                    G.add_edge(mac, bssid, kind='Association', weight=positive_weight, 
+                              start=edge_start_iso, end=edge_end_iso)
     return G
 
 
@@ -651,6 +664,8 @@ def write_gexf13_enhanced(G: nx.Graph, out_file: str):
             "weight": str(attrs.get("weight", 1.0))
         })
         if "kind" in attrs: edge_el.set("label", str(attrs['kind']))
+        if "start" in attrs: edge_el.set("start", str(attrs['start']))
+        if "end" in attrs: edge_el.set("end", str(attrs['end']))
 
     tree = ET.ElementTree(gexf)
     ET.indent(tree, space="  ")

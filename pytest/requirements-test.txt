@@ -1,0 +1,43 @@
+# Test-Abhängigkeiten für das WLAN-Analyse-Tool
+
+# Core Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+pytest-mock>=3.10.0
+pytest-xdist>=3.0.0  # Parallel test execution
+pytest-html>=3.1.0   # HTML test reports
+pytest-benchmark>=4.0.0  # Performance benchmarking
+
+# Mocking and Fixtures
+unittest-mock>=1.0.0
+factory-boy>=3.2.0  # Test data generation
+
+# Performance Testing
+psutil>=5.9.0  # System and process utilities
+memory-profiler>=0.60.0  # Memory profiling
+
+# Data Science Testing
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=1.0.0
+
+# Network Testing
+requests>=2.28.0
+urllib3>=1.26.0
+
+# Database Testing
+sqlite3  # Built-in, but listed for clarity
+
+# Coverage and Quality
+coverage>=6.0.0
+pytest-cov>=4.0.0
+codecov>=2.1.0  # Code coverage reporting
+
+# Documentation Testing
+pytest-doctestplus>=0.12.0  # Enhanced doctest support
+
+# Async Testing (if needed)
+pytest-asyncio>=0.20.0
+
+# Custom Markers
+pytest-mock>=3.10.0

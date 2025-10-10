@@ -11,15 +11,15 @@ from pathlib import Path
 import sys
 import importlib.util
 # Importiere nur noch die notwendigen Teile für den Start
-from data import pre_run_checks, utils, config
-from data.controllers import CaptureController, AnalysisController
+from wlan_tool import utils, config, pre_run_checks
+from wlan_tool.controllers import CaptureController, AnalysisController
+from wlan_tool.storage import database, state
+from wlan_tool.storage.state import WifiAnalysisState
 from rich.console import Console
-from data import database
 from collections import Counter
 from typing import Optional, Dict
 
 import joblib
-from data.state import WifiAnalysisState
 
 logger = logging.getLogger(__name__)
 
@@ -117,16 +117,16 @@ def parse_args():
     return p.parse_args()
 
 def load_plugins(console: Console):
-    """Sucht und lädt alle Analyse-Plugins aus dem 'data/plugins'-Verzeichnis."""
+    """Sucht und lädt alle Analyse-Plugins aus dem 'plugins'-Verzeichnis."""
     plugins = {}
-    plugin_dir = Path(__file__).parent / "data" / "plugins"
+    plugin_dir = Path(__file__).parent / "plugins"
     if not plugin_dir.is_dir():
         return {}
         
     for f in plugin_dir.glob("analysis_*.py"):
         plugin_name = f.stem.replace("analysis_", "")
         try:
-            module_spec = importlib.util.spec_from_file_location(f"data.plugins.{f.stem}", f)
+            module_spec = importlib.util.spec_from_file_location(f"plugins.{f.stem}", f)
             module = importlib.util.module_from_spec(module_spec)
             module_spec.loader.exec_module(module)
             if hasattr(module, 'run'):
@@ -150,7 +150,7 @@ def main():
     status_led = None
     if args.status_led:
         try:
-            from data.led_controller import StatusLED
+            from wlan_tool.led_controller import StatusLED
             status_led = StatusLED()
             status_led.start()
         except ImportError:

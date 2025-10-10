@@ -9,16 +9,17 @@ from collections import Counter
 import subprocess
 from typing import Optional
 
-from . import (
-    analysis, capture, config, database, utils, state, pre_run_checks,
-    device_profiler, cli
-)
+from . import config, utils
+from .storage import database, state
+from .storage.state import WifiAnalysisState
+from .analysis import logic as analysis, training as ml_training
+from .capture import sniffer as capture
+from .presentation import cli, live_tui
+from . import led_controller
 from fritzconnection.lib.fritzhosts import FritzHosts
 from fritzconnection import FritzConnection
-from .state import WifiAnalysisState
 from rich.prompt import Prompt
 from rich.console import Console
-from data import ml_training
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class CaptureController:
         database.migrate_db(db_path)
 
         if self.args.live:
-            self.console.print("[yellow]Live-Modus wird in dieser Struktur noch nicht vollständig unterstützt. Bitte verwenden Sie die vorherige Version für den Live-Modus.[/yellow]")
+            self._run_live_capture(monitor_iface, duration, db_path, pcap_out)
             return
 
         use_adaptive_scan = self.args.adaptive_scan or self.config_data.get("scanning", {}).get("adaptive_scan_enabled", False)
@@ -62,6 +63,28 @@ class CaptureController:
             if use_adaptive_scan:
                 logger.warning("Gesamtdauer ist kürzer als Discovery-Zeit. Führe normalen Scan durch.")
             capture.sniff_with_writer(monitor_iface, duration, db_path, pcap_out=pcap_out)
+
+    def _run_live_capture(self, monitor_iface: str, duration: int, db_path: str, pcap_out: Optional[str]):
+        """Führt die Erfassung mit Live-TUI durch."""
+        import multiprocessing as mp
+        
+        # Erstelle eine Queue für Live-Daten
+        live_queue = mp.Queue(maxsize=1000)
+        
+        # Starte die Live-TUI in einem separaten Prozess
+        tui_process = mp.Process(target=live_tui.start_live_tui, args=(live_queue, duration))
+        tui_process.start()
+        
+        try:
+            # Starte die Erfassung mit Live-Queue
+            self.console.print(f"[cyan]Starte Live-Erfassung auf {monitor_iface} für {duration}s...[/cyan]")
+            capture.sniff_with_writer(monitor_iface, duration, db_path, pcap_out=pcap_out, live_queue=live_queue)
+        finally:
+            # Beende die TUI
+            tui_process.terminate()
+            tui_process.join(timeout=5)
+            if tui_process.is_alive():
+                tui_process.kill()
 
     def _select_interface(self) -> Optional[str]:
         """Wählt das zu verwendende physische WLAN-Interface aus."""

@@ -7,8 +7,8 @@ from pathlib import Path
 import time
 from typing import Dict, Any, List
 
-from .state import WifiAnalysisState
-from .data_models import InferenceResult
+from ..storage.state import WifiAnalysisState
+from ..storage.data_models import InferenceResult
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,11 @@ def generate_html_report(state: WifiAnalysisState, analysis_results: Dict[str, A
     if Environment is None:
         logger.error("Jinja2 ist nicht installiert. HTML-Bericht kann nicht erstellt werden.")
         return
+    
+    # Use default template if no path provided
+    if not template_path:
+        template_path = str(Path(__file__).parent.parent / "assets" / "templates" / "template.html")
+    
     template_dir = Path(template_path).parent
     template_name = Path(template_path).name
     if not template_dir.exists() or not Path(template_path).is_file():

@@ -6,9 +6,9 @@ from typing import Dict, List, Optional, Set, Tuple, Iterable
 from dataclasses import dataclass, field
 import math
 
-from . import utils
+from .. import utils
 from .data_models import APState, ClientState, Welford, EventType
-from .utils import is_local_admin_mac, parse_ies, is_valid_bssid
+from ..utils import is_local_admin_mac, parse_ies, is_valid_bssid
 
 logger = logging.getLogger(__name__)
 

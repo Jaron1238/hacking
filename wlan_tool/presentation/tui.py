@@ -5,12 +5,13 @@ from textual.widgets import Header, Footer, DataTable, Static, Label
 from textual.containers import Vertical, Horizontal
 from textual.reactive import reactive
 import pandas as pd
+from pathlib import Path
 
 class AnalysisTUI(App):
     """Eine interaktive Terminal-Benutzeroberfläche zur Analyse der Cluster-Ergebnisse."""
 
     TITLE = "WLAN Client Analyse"
-    CSS_PATH = "tui.css"
+    CSS_PATH = str(Path(__file__).parent.parent / "assets" / "templates" / "tui.css")
 
     # Daten werden beim Start der App übergeben
     clustered_df = pd.DataFrame()

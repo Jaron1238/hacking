@@ -10,7 +10,7 @@ import urllib.request
 import csv
 import yaml
 if typing.TYPE_CHECKING:
-    from .state import ClientState
+    from .storage.state import ClientState
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ OUI_SOURCES = [
         "format": "wireshark"
     }
 ]
-OUI_LOCAL_PATH = Path(__file__).parent / "manuf"
+OUI_LOCAL_PATH = Path(__file__).parent / "assets" / "manuf"
 
 def download_oui_file():
     """

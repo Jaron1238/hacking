@@ -11,7 +11,9 @@ from pathlib import Path
 import joblib
 
 
-from . import analysis, utils, database, config, state
+from ..analysis import logic as analysis
+from .. import utils, config
+from ..storage import database, state
 
 def print_client_cluster_results(args, state, console):
     """Führt das Client-Clustering aus und gibt die Ergebnisse formatiert aus."""

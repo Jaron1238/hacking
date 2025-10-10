@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Iterator
 
 # Relative Imports
-from . import config
+from .. import config
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def db_conn_ctx(path: str):
     finally: conn.close()
     
 def migrate_db(db_path: str):
-    migrations_path = Path(__file__).parent / "sql_data" / "versions"
+    migrations_path = Path(__file__).parent.parent / "assets" / "sql_data" / "versions"
     if not migrations_path.exists():
         logger.error(f"Migrations-Verzeichnis nicht gefunden: {migrations_path}")
         return

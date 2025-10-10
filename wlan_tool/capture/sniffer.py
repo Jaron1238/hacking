@@ -15,9 +15,9 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, TypedDict
 
 # Relative Imports
-from . import config
-from . import database
-from .data_models import WifiEvent
+from .. import config
+from ..storage import database
+from ..storage.data_models import WifiEvent
 
 from tqdm import tqdm
 
