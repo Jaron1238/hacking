@@ -13,9 +13,11 @@ import numpy as np
 from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt
 
 # Importiere die zu testenden Module aus deinem Projekt
-from data.state import WifiAnalysisState, ClientState, APState
-from data import analysis, utils, capture, database
-from data.data_models import Welford
+from wlan_tool.storage.state import WifiAnalysisState, ClientState, APState
+from wlan_tool import analysis, utils
+from wlan_tool.capture import sniffer as capture
+from wlan_tool.storage import database
+from wlan_tool.storage.data_models import Welford
 
 # --- Fixtures: Wiederverwendbare Testdaten ---
 
@@ -44,7 +46,7 @@ def populated_state(sample_events):
 @pytest.fixture
 def in_memory_db():
     conn = sqlite3.connect(":memory:")
-    db_path = Path(__file__).parent / "data" / "sql_data" / "versions"
+    db_path = Path(__file__).parent.parent / "wlan_tool" / "assets" / "sql_data" / "versions"
     for migration_file in sorted(db_path.glob("*.sql")):
         sql_script = migration_file.read_text()
         conn.executescript(sql_script)
