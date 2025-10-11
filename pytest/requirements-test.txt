@@ -9,7 +9,6 @@ pytest-html>=3.1.0   # HTML test reports
 pytest-benchmark>=4.0.0  # Performance benchmarking
 
 # Mocking and Fixtures
-unittest-mock>=1.0.0
 factory-boy>=3.2.0  # Test data generation
 
 # Performance Testing
@@ -26,7 +25,7 @@ requests>=2.28.0
 urllib3>=1.26.0
 
 # Database Testing
-sqlite3  # Built-in, but listed for clarity
+# sqlite3  # Built-in module, no pip installation needed
 
 # Coverage and Quality
 coverage>=6.0.0
@@ -40,4 +39,4 @@ pytest-doctestplus>=0.12.0  # Enhanced doctest support
 pytest-asyncio>=0.20.0
 
 # Custom Markers
-pytest-mock>=3.10.0
+# pytest-mock already listed above
