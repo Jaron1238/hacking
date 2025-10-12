@@ -423,52 +423,60 @@ def cluster_clients(
             X_scaled = StandardScaler().fit_transform(df_numeric)
             data_to_cluster = X_scaled
 
-    if use_encoder_path and ClientAutoencoder:
-        logger.info("Autoencoder wird verwendet. Manuelle Feature-Gewichtung wird übersprungen.")
-        if torch and Path(use_encoder_path).exists():
-            try:
-                embedding_dim = 16
-                encoder = ClientAutoencoder(input_dim=X_scaled.shape[1], embedding_dim=embedding_dim).encoder
-                encoder.load_state_dict(torch.load(use_encoder_path))
-                encoder.eval()
-                with torch.no_grad():
-                    X_tensor = torch.FloatTensor(X_scaled)
-                    embeddings = encoder(X_tensor).numpy()
-                data_to_cluster = embeddings
-                logger.info(f"Client-Features in {embedding_dim}-dimensionale Embeddings umgewandelt.")
-            except Exception as e:
-                logger.error(f"Fehler beim Laden/Anwenden des Encoders: {e}. Fallback auf Standard.")
-        else:
-            logger.warning(f"Encoder-Modell nicht gefunden oder torch nicht verfügbar. Fallback auf Standard.")
-    else:
-        logger.info("Wende manuelle Feature-Gewichtungen für Standard-Clustering an...")
-        X_scaled_df = pd.DataFrame(X_scaled, columns=df_numeric.columns)
-        weights = config.CLIENT_CLUSTERING_FEATURE_WEIGHTS
-        for feature, weight in weights.items():
-            cols_to_weight = [col for col in X_scaled_df.columns if col.startswith(feature)]
-            if cols_to_weight:
-                logger.debug(f"Gewichte Feature '{feature}' mit Faktor {weight}.")
-                X_scaled_df[cols_to_weight] *= weight
-        data_to_cluster = X_scaled_df.to_numpy()
-    
-    if algo == "dbscan":
-        logger.info("Verwende DBSCAN für das Clustering...")
-        dbscan = DBSCAN(eps=1.5, min_samples=3)
-        labels = dbscan.fit_predict(data_to_cluster)
-        n_clusters_found = len(set(labels)) - (1 if -1 in labels else 0)
-        logger.info(f"DBSCAN fand {n_clusters_found} Cluster und {np.sum(labels == -1)} Ausreißer.")
-    else:
-        logger.info("Verwende KMeans für das Clustering...")
-        if n_clusters == 0:
-            optimal_k = find_optimal_k_elbow_and_silhouette(data_to_cluster)
-            n_clusters = optimal_k or 5
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
-        labels = kmeans.fit_predict(data_to_cluster)
-    
-    result_df = pd.DataFrame({'mac': mac_addresses, 'original_macs': original_macs, 'vendor': vendor_strings, 'cluster': labels})
-    
-    df_numeric['original_macs'] = original_macs
-    return result_df, df_numeric
+            if use_encoder_path and ClientAutoencoder:
+                logger.info("Autoencoder wird verwendet. Manuelle Feature-Gewichtung wird übersprungen.")
+                if torch and Path(use_encoder_path).exists():
+                    try:
+                        embedding_dim = 16
+                        encoder = ClientAutoencoder(input_dim=X_scaled.shape[1], embedding_dim=embedding_dim).encoder
+                        encoder.load_state_dict(torch.load(use_encoder_path))
+                        encoder.eval()
+                        with torch.no_grad():
+                            X_tensor = torch.FloatTensor(X_scaled)
+                            embeddings = encoder(X_tensor).numpy()
+                        data_to_cluster = embeddings
+                        logger.info(f"Client-Features in {embedding_dim}-dimensionale Embeddings umgewandelt.")
+                    except Exception as e:
+                        logger.error(f"Fehler beim Laden/Anwenden des Encoders: {e}. Fallback auf Standard.")
+                else:
+                    logger.warning(f"Encoder-Modell nicht gefunden oder torch nicht verfügbar. Fallback auf Standard.")
+            else:
+                logger.info("Wende manuelle Feature-Gewichtungen für Standard-Clustering an...")
+                X_scaled_df = pd.DataFrame(X_scaled, columns=df_numeric.columns)
+                weights = config.CLIENT_CLUSTERING_FEATURE_WEIGHTS
+                for feature, weight in weights.items():
+                    cols_to_weight = [col for col in X_scaled_df.columns if col.startswith(feature)]
+                    if cols_to_weight:
+                        logger.debug(f"Gewichte Feature '{feature}' mit Faktor {weight}.")
+                        X_scaled_df[cols_to_weight] *= weight
+                data_to_cluster = X_scaled_df.to_numpy()
+            
+            if algo == "dbscan":
+                logger.info("Verwende DBSCAN für das Clustering...")
+                dbscan = DBSCAN(eps=1.5, min_samples=3)
+                labels = dbscan.fit_predict(data_to_cluster)
+                n_clusters_found = len(set(labels)) - (1 if -1 in labels else 0)
+                logger.info(f"DBSCAN fand {n_clusters_found} Cluster und {np.sum(labels == -1)} Ausreißer.")
+            else:
+                logger.info("Verwende KMeans für das Clustering...")
+                if n_clusters == 0:
+                    optimal_k = find_optimal_k_elbow_and_silhouette(data_to_cluster)
+                    n_clusters = optimal_k or 5
+                kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init='auto')
+                labels = kmeans.fit_predict(data_to_cluster)
+            
+            result_df = pd.DataFrame({'mac': mac_addresses, 'original_macs': original_macs, 'vendor': vendor_strings, 'cluster': labels})
+            
+            df_numeric['original_macs'] = original_macs
+            return result_df, df_numeric
+
+        except Exception as e:
+            logger.error(f"Fehler beim Clustering: {e}")
+            raise AnalysisError(
+                f"Clustering failed: {e}",
+                error_code="CLUSTERING_ERROR",
+                details={"error": str(e)}
+            )
 
 
 def profile_clusters(feature_df: pd.DataFrame, clustered_df: pd.DataFrame) -> Dict:
