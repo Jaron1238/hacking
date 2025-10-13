@@ -26,7 +26,7 @@ from wlan_tool.presentation import cli, reporting
 from wlan_tool.controllers import CaptureController, AnalysisController
 
 # Scapy-Imports für Paket-Tests
-from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, Dot11ProbeReq, Dot11Data
+from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, Dot11ProbeReq
 
 
 # ==============================================================================

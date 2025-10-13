@@ -15,6 +15,7 @@ from collections import defaultdict, Counter
 from typing import Dict, Set, Optional
 import multiprocessing as mp
 from queue import Empty
+from pathlib import Path
 
 from ..storage.data_models import WifiEvent
 from ..storage.state import WifiAnalysisState

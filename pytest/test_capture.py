@@ -13,7 +13,7 @@ from pathlib import Path
 
 from wlan_tool.capture import sniffer as capture
 from wlan_tool.storage.data_models import WifiEvent
-from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, Dot11ProbeReq, Dot11Data
+from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt, Dot11ProbeReq
 
 
 class TestPacketParsing:

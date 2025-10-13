@@ -314,7 +314,7 @@ def get_ips_for_macs_arp(network_interface: str) -> Dict[str, str]:
         return {}
 
 
-def discover_routers() -> List[upnpclient.Device]:
+def discover_routers() -> List:
     """Sucht im lokalen Netzwerk nach UPnP-fähigen Geräten (potenziellen Routern)."""
     if upnpclient is None:
         logger.warning("Die 'upnpclient'-Bibliothek ist nicht installiert. Router-Scan nicht möglich.")
@@ -359,7 +359,7 @@ def discover_routers() -> List[upnpclient.Device]:
         logger.error(f"Fehler bei der UPnP-Gerätesuche: {e}")
         return []
 
-def get_connected_devices_from_router(router: upnpclient.Device) -> Optional[Dict[str, Dict]]:
+def get_connected_devices_from_router(router) -> Optional[Dict[str, Dict]]:
     """Fragt einen gegebenen Router nach der Liste der verbundenen Geräte ab."""
     if router is None:
         return None
