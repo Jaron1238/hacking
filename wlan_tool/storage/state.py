@@ -100,6 +100,8 @@ class WifiAnalysisState:
                 if ssid: self.ssid_map[ssid]["sources"]["probe_resp"].add(bssid)
         
         elif ev_type == "probe_req":
+            if not client_mac:
+                return
             client = self.clients[client_mac]
             client.mgmt_frame_count += 1
             if ies := ev.get("ies", {}):
@@ -113,6 +115,8 @@ class WifiAnalysisState:
                             self.clients_probing_ssid[s].add(client_mac)
         
         elif ev_type == "data":
+            if not client_mac:
+                return
             client = self.clients[client_mac]
             client.data_frame_count += 1
             if (mcs := ev.get("mcs_index")) is not None:

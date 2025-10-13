@@ -176,7 +176,7 @@ def migrate_db(db_path: str):
         logger.info("Database is up to date.")
 
 @handle_errors(DatabaseError, "DB_FETCH_EVENTS_ERROR", default_return=[])
-def fetch_events(conn: sqlite3.Connection, start_ts: Optional[float] = None, end_ts: Optional[float] = None) -> Iterator[Dict]:
+def fetch_events(conn: sqlite3.Connection, start_ts: Optional[float] = None, end_ts: Optional[float] = None) -> List[Dict]:
     """Hole Events aus der Datenbank mit Fehlerbehandlung."""
     with ErrorContext("fetch_events", "DB_FETCH_EVENTS_ERROR"):
         # Validiere Parameter
@@ -220,6 +220,7 @@ def fetch_events(conn: sqlite3.Connection, start_ts: Optional[float] = None, end
             cursor.execute(q, params)
             columns = [desc[0] for desc in cursor.description]
             
+            events = []
             for row in cursor:
                 event_dict = dict(zip(columns, row))
                 try:
@@ -227,7 +228,8 @@ def fetch_events(conn: sqlite3.Connection, start_ts: Optional[float] = None, end
                 except (json.JSONDecodeError, ValueError) as e:
                     logger.warning(f"Failed to parse IEs for event: {e}")
                     event_dict["ies"] = {}
-                yield event_dict
+                events.append(event_dict)
+            return events
                 
         except sqlite3.Error as e:
             raise DatabaseError(

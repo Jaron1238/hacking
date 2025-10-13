@@ -25,7 +25,7 @@ class TestWelford:
         w = Welford()
         assert w.n == 0
         assert w.mean == 0.0
-        assert w.s == 0.0
+        assert w.M2 == 0.0
     
     def test_welford_single_update(self):
         """Test Welford mit einem Wert."""
@@ -62,10 +62,10 @@ class TestWelford:
         w2.update(3.0)
         w2.update(4.0)
         
-        w1.combine(w2)
-        assert w1.n == 4
-        assert w1.mean == pytest.approx(2.5)
-        assert w1.std() == pytest.approx(1.291, abs=0.01)
+        w3 = w1.combine(w2)
+        assert w3.n == 4
+        assert w3.mean == pytest.approx(2.5)
+        assert w3.std() == pytest.approx(1.291, abs=0.01)
 
 
 class TestClientState:

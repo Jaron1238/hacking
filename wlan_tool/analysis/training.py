@@ -7,10 +7,10 @@ import os
 import tempfile
 from typing import Callable, Optional
 
-from . import database
+from ..storage import database
 from . import analysis
-from .state import WifiAnalysisState
-from .ki_models import ClientAutoencoder
+from ..storage.state import WifiAnalysisState
+from .models import ClientAutoencoder
 
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import roc_auc_score, brier_score_loss
-from .ki_models import ClientAutoencoder
+from .models import ClientAutoencoder
 
 
 def train_model_from_confirmed_csv(confirmed_csv: str, feature_extractor: Callable, out_model: Optional[str] = None) -> Optional[object]:
