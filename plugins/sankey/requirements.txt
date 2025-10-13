@@ -1,0 +1,2 @@
+# Dependencies für Sankey Plugin
+plotly>=5.0.0
