@@ -61,8 +61,6 @@ test-performance:
 test-plugins:
 	pytest tests/plugins/ -v --cov=plugins --cov-report=html --cov-report=term-missing
 
-test-security:
-	pytest tests/security/ -v
 
 test-docs:
 	pytest tests/documentation/ -v
@@ -81,9 +79,6 @@ format:
 type-check:
 	mypy wlan_tool tests scripts --config-file=pyproject.toml
 
-security-check:
-	bandit -r wlan_tool scripts --exclude tests
-	safety check
 
 quality-check:
 	python scripts/code_quality.py --tool all

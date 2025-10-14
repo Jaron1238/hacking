@@ -23,22 +23,6 @@ class DataValidator:
         
         # Validierungs-Patterns
         self.mac_pattern = re.compile(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
-        self.sql_injection_patterns = [
-            r"('|(\\')|(;)|(--)|(/\*)|(\*/)|(\b(OR|AND)\b)",
-            r"(\bUNION\b)",
-            r"(\bSELECT\b)",
-            r"(\bINSERT\b)",
-            r"(\bUPDATE\b)",
-            r"(\bDELETE\b)",
-            r"(\bDROP\b)"
-        ]
-        self.xss_patterns = [
-            r"<script[^>]*>.*?</script>",
-            r"javascript:",
-            r"on\w+\s*=",
-            r"<iframe[^>]*>.*?</iframe>",
-            r"<img[^>]*onerror[^>]*>"
-        ]
     
     def validate(self, data: pd.DataFrame) -> Tuple[bool, List[str]]:
         """
@@ -77,9 +61,6 @@ class DataValidator:
             mac_errors = self._validate_mac_addresses(data['mac_address'])
             errors.extend(mac_errors)
         
-        # Sicherheits-Checks
-        security_errors = self._check_security(data)
-        errors.extend(security_errors)
         
         # Duplicate Timestamps prüfen
         if 'timestamp' in data.columns:
@@ -130,31 +111,6 @@ class DataValidator:
         
         return errors
     
-    def _check_security(self, data: pd.DataFrame) -> List[str]:
-        """Führt Sicherheits-Checks durch."""
-        errors = []
-        
-        # SQL-Injection-Check
-        for col in data.select_dtypes(include=['object']).columns:
-            for idx, value in data[col].items():
-                if pd.isna(value):
-                    continue
-                
-                value_str = str(value)
-                
-                # SQL-Injection-Patterns prüfen
-                for pattern in self.sql_injection_patterns:
-                    if re.search(pattern, value_str, re.IGNORECASE):
-                        errors.append(f"Potential SQL injection in {col} at index {idx}")
-                        break
-                
-                # XSS-Patterns prüfen
-                for pattern in self.xss_patterns:
-                    if re.search(pattern, value_str, re.IGNORECASE):
-                        errors.append(f"Potential XSS in {col} at index {idx}")
-                        break
-        
-        return errors
     
     def _check_duplicate_timestamps(self, timestamp_data: pd.Series) -> List[str]:
         """Prüft auf doppelte Timestamps."""

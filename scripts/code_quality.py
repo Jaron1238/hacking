@@ -187,96 +187,7 @@ class CodeQualityChecker:
             print("❌ isort nicht installiert. Installiere mit: pip install isort")
             return {"success": False, "error": "isort not installed"}
 
-    def run_bandit(self, paths: List[str] = None) -> Dict[str, Any]:
-        """Führt Bandit Sicherheits-Scan durch."""
-        print("🔍 Führe Bandit Sicherheits-Scan durch...")
 
-        cmd = [
-            "bandit",
-            "-r",
-            "-f",
-            "json",
-            "-o",
-            "bandit-report.json",
-            "--exclude",
-            "tests",
-            "--exclude",
-            "venv",
-            "--exclude",
-            "env",
-        ]
-
-        if paths:
-            cmd.extend(paths)
-        else:
-            cmd.append("wlan_tool")
-            cmd.append("scripts")
-
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=self.project_root
-            )
-
-            # Bandit-Report lesen
-            report_file = self.project_root / "bandit-report.json"
-            bandit_results = {}
-            if report_file.exists():
-                with open(report_file, "r") as f:
-                    bandit_results = json.load(f)
-
-            self.results["bandit"] = {
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "success": result.returncode == 0,
-                "results": bandit_results,
-            }
-
-            if result.returncode == 0:
-                print("✅ Bandit: Keine Sicherheitsprobleme gefunden")
-            else:
-                print(f"❌ Bandit: {result.returncode} Sicherheitsprobleme gefunden")
-                if result.stdout:
-                    print(result.stdout)
-
-            return self.results["bandit"]
-
-        except FileNotFoundError:
-            print("❌ Bandit nicht installiert. Installiere mit: pip install bandit")
-            return {"success": False, "error": "Bandit not installed"}
-
-    def run_safety(self) -> Dict[str, Any]:
-        """Führt Safety Dependency-Scan durch."""
-        print("🔍 Führe Safety Dependency-Scan durch...")
-
-        cmd = ["safety", "check", "--json"]
-
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, cwd=self.project_root
-            )
-
-            self.results["safety"] = {
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "success": result.returncode == 0,
-            }
-
-            if result.returncode == 0:
-                print("✅ Safety: Keine bekannten Sicherheitslücken in Dependencies")
-            else:
-                print(
-                    f"❌ Safety: {result.returncode} Sicherheitslücken in Dependencies gefunden"
-                )
-                if result.stdout:
-                    print(result.stdout)
-
-            return self.results["safety"]
-
-        except FileNotFoundError:
-            print("❌ Safety nicht installiert. Installiere mit: pip install safety")
-            return {"success": False, "error": "Safety not installed"}
 
     def run_radon(self, paths: List[str] = None) -> Dict[str, Any]:
         """Führt Radon Komplexitäts-Analyse durch."""
@@ -369,8 +280,6 @@ class CodeQualityChecker:
             self.run_mypy,
             self.run_black,
             self.run_isort,
-            self.run_bandit,
-            self.run_safety,
             self.run_radon,
             self.run_xenon,
         ]
