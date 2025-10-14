@@ -4,37 +4,49 @@
 Zentrale Exception-Klassen und Error-Handler für das WLAN-Analyse-Tool.
 """
 
-import logging
-import traceback
-from typing import Optional, Dict, Any, Callable, Type, Union, List, Tuple, TypeVar, Generic
-from pathlib import Path
 import functools
+import logging
 import sys
+import traceback
 from datetime import datetime
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
-T = TypeVar('T')
-F = TypeVar('F', bound=Callable[..., Any])
+T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 # ==============================================================================
 # CUSTOM EXCEPTION CLASSES
 # ==============================================================================
 
+
 class WLANToolError(Exception):
     """Basis-Exception für alle WLAN-Tool-Fehler."""
-    
+
     def __init__(
-        self, 
-        message: str, 
-        error_code: Optional[str] = None, 
-        details: Optional[Dict[str, Any]] = None
+        self,
+        message: str,
+        error_code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(message)
         self.message: str = message
         self.error_code: Optional[str] = error_code
         self.details: Dict[str, Any] = details or {}
         self.timestamp: Optional[datetime] = None
-    
+
     def __str__(self) -> str:
         base_msg = f"WLANToolError: {self.message}"
         if self.error_code:
@@ -46,51 +58,61 @@ class WLANToolError(Exception):
 
 class ConfigurationError(WLANToolError):
     """Fehler bei der Konfiguration."""
+
     pass
 
 
 class DatabaseError(WLANToolError):
     """Fehler bei Datenbankoperationen."""
+
     pass
 
 
 class CaptureError(WLANToolError):
     """Fehler bei der Paket-Erfassung."""
+
     pass
 
 
 class AnalysisError(WLANToolError):
     """Fehler bei der Analyse."""
+
     pass
 
 
 class NetworkError(WLANToolError):
     """Fehler bei Netzwerkoperationen."""
+
     pass
 
 
 class HardwareError(WLANToolError):
     """Fehler bei Hardware-Zugriff."""
+
     pass
 
 
 class ValidationError(WLANToolError):
     """Fehler bei der Datenvalidierung."""
+
     pass
 
 
 class FileSystemError(WLANToolError):
     """Fehler bei Dateisystemoperationen."""
+
     pass
 
 
 class PermissionError(WLANToolError):
     """Fehler bei Berechtigungen."""
+
     pass
 
 
 class ResourceError(WLANToolError):
     """Fehler bei Ressourcen (Speicher, CPU, etc.)."""
+
     pass
 
 
@@ -98,26 +120,28 @@ class ResourceError(WLANToolError):
 # ERROR HANDLER DECORATORS
 # ==============================================================================
 
+
 def handle_errors(
     error_type: Type[Exception] = WLANToolError,
     error_code: Optional[str] = None,
     default_return: Any = None,
     log_error: bool = True,
-    reraise: bool = False
+    reraise: bool = False,
 ) -> Callable[[F], F]:
     """
     Decorator für automatische Fehlerbehandlung.
-    
+
     Args:
         error_type: Exception-Typ, der abgefangen werden soll
         error_code: Fehlercode für die Exception
         default_return: Rückgabewert bei Fehler
         log_error: Ob der Fehler geloggt werden soll
         reraise: Ob die Exception erneut geworfen werden soll
-    
+
     Returns:
         Decorated function with error handling
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -128,7 +152,7 @@ def handle_errors(
                     logger = logging.getLogger(func.__module__)
                     logger.error(f"Error in {func.__name__}: {e}")
                     logger.debug(f"Traceback: {traceback.format_exc()}")
-                
+
                 if reraise:
                     if isinstance(e, WLANToolError):
                         e.error_code = error_code or e.error_code
@@ -140,19 +164,20 @@ def handle_errors(
                     logger = logging.getLogger(func.__module__)
                     logger.error(f"Unexpected error in {func.__name__}: {e}")
                     logger.debug(f"Traceback: {traceback.format_exc()}")
-                
+
                 if reraise:
                     # Wandle in WLANToolError um
                     wlan_error = WLANToolError(
                         message=str(e),
                         error_code=error_code or "UNEXPECTED_ERROR",
-                        details={"original_error": type(e).__name__}
+                        details={"original_error": type(e).__name__},
                     )
                     raise wlan_error
                 else:
                     return default_return
-        
+
         return wrapper  # type: ignore
+
     return decorator
 
 
@@ -160,25 +185,26 @@ def retry_on_error(
     max_attempts: int = 3,
     delay: float = 1.0,
     backoff_factor: float = 2.0,
-    exceptions: tuple = (Exception,)
+    exceptions: tuple = (Exception,),
 ):
     """
     Decorator für Wiederholung bei Fehlern.
-    
+
     Args:
         max_attempts: Maximale Anzahl Versuche
         delay: Verzögerung zwischen Versuchen (Sekunden)
         backoff_factor: Faktor für exponentielle Verzögerung
         exceptions: Exception-Typen, bei denen wiederholt werden soll
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             import time
-            
+
             last_exception = None
             current_delay = delay
-            
+
             for attempt in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
@@ -194,24 +220,26 @@ def retry_on_error(
                         current_delay *= backoff_factor
                     else:
                         logger = logging.getLogger(func.__module__)
-                        logger.error(f"All {max_attempts} attempts failed in {func.__name__}: {e}")
-            
+                        logger.error(
+                            f"All {max_attempts} attempts failed in {func.__name__}: {e}"
+                        )
+
             # Alle Versuche fehlgeschlagen
             raise last_exception
-        
+
         return wrapper
+
     return decorator
 
 
-def validate_input(
-    **validators: Callable[[Any], bool]
-):
+def validate_input(**validators: Callable[[Any], bool]):
     """
     Decorator für Eingabevalidierung.
-    
+
     Args:
         **validators: Validator-Funktionen für Parameter
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -222,12 +250,16 @@ def validate_input(
                         raise ValidationError(
                             f"Invalid value for parameter '{param_name}': {kwargs[param_name]}",
                             error_code="INVALID_INPUT",
-                            details={"parameter": param_name, "value": kwargs[param_name]}
+                            details={
+                                "parameter": param_name,
+                                "value": kwargs[param_name],
+                            },
                         )
-            
+
             return func(*args, **kwargs)
-        
+
         return wrapper
+
     return decorator
 
 
@@ -235,43 +267,51 @@ def validate_input(
 # ERROR CONTEXT MANAGER
 # ==============================================================================
 
+
 class ErrorContext:
     """Context Manager für strukturierte Fehlerbehandlung."""
-    
-    def __init__(self, operation: str, error_code: Optional[str] = None, 
-                 log_level: int = logging.ERROR):
+
+    def __init__(
+        self,
+        operation: str,
+        error_code: Optional[str] = None,
+        log_level: int = logging.ERROR,
+    ):
         self.operation = operation
         self.error_code = error_code
         self.log_level = log_level
         self.logger = logging.getLogger(self.__class__.__module__)
-    
+
     def __enter__(self):
         self.logger.debug(f"Starting operation: {self.operation}")
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is not None:
             error_msg = f"Error in {self.operation}: {exc_val}"
-            
+
             if isinstance(exc_val, WLANToolError):
                 error_msg += f" (Code: {exc_val.error_code})"
                 if exc_val.details:
                     error_msg += f" | Details: {exc_val.details}"
             else:
                 error_msg += f" | Type: {exc_type.__name__}"
-            
+
             self.logger.log(self.log_level, error_msg)
             self.logger.debug(f"Traceback: {traceback.format_exc()}")
-            
+
             # Konvertiere zu WLANToolError falls nötig
             if not isinstance(exc_val, WLANToolError):
                 wlan_error = WLANToolError(
                     message=str(exc_val),
                     error_code=self.error_code or "CONTEXT_ERROR",
-                    details={"operation": self.operation, "original_type": exc_type.__name__}
+                    details={
+                        "operation": self.operation,
+                        "original_type": exc_type.__name__,
+                    },
                 )
                 raise wlan_error from exc_val
-        
+
         return False  # Re-raise exception
 
 
@@ -279,19 +319,21 @@ class ErrorContext:
 # ERROR RECOVERY MECHANISMS
 # ==============================================================================
 
+
 class ErrorRecovery:
     """Klasse für Error-Recovery-Strategien."""
-    
+
     @staticmethod
-    def safe_file_operation(operation: Callable, file_path: str, 
-                          fallback: Optional[Callable] = None) -> Any:
+    def safe_file_operation(
+        operation: Callable, file_path: str, fallback: Optional[Callable] = None
+    ) -> Any:
         """Sichere Dateioperation mit Fallback."""
         try:
             return operation()
         except (FileNotFoundError, PermissionError, OSError) as e:
             logger = logging.getLogger(__name__)
             logger.warning(f"File operation failed for {file_path}: {e}")
-            
+
             if fallback:
                 logger.info(f"Using fallback for {file_path}")
                 return fallback()
@@ -299,19 +341,20 @@ class ErrorRecovery:
                 raise FileSystemError(
                     f"File operation failed: {file_path}",
                     error_code="FILE_OPERATION_FAILED",
-                    details={"file_path": file_path, "original_error": str(e)}
+                    details={"file_path": file_path, "original_error": str(e)},
                 ) from e
-    
+
     @staticmethod
-    def safe_database_operation(operation: Callable, 
-                              fallback: Optional[Callable] = None) -> Any:
+    def safe_database_operation(
+        operation: Callable, fallback: Optional[Callable] = None
+    ) -> Any:
         """Sichere Datenbankoperation mit Fallback."""
         try:
             return operation()
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.warning(f"Database operation failed: {e}")
-            
+
             if fallback:
                 logger.info("Using database fallback")
                 return fallback()
@@ -319,19 +362,20 @@ class ErrorRecovery:
                 raise DatabaseError(
                     f"Database operation failed: {e}",
                     error_code="DATABASE_OPERATION_FAILED",
-                    details={"original_error": str(e)}
+                    details={"original_error": str(e)},
                 ) from e
-    
+
     @staticmethod
-    def safe_network_operation(operation: Callable, 
-                             fallback: Optional[Callable] = None) -> Any:
+    def safe_network_operation(
+        operation: Callable, fallback: Optional[Callable] = None
+    ) -> Any:
         """Sichere Netzwerkoperation mit Fallback."""
         try:
             return operation()
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.warning(f"Network operation failed: {e}")
-            
+
             if fallback:
                 logger.info("Using network fallback")
                 return fallback()
@@ -339,7 +383,7 @@ class ErrorRecovery:
                 raise NetworkError(
                     f"Network operation failed: {e}",
                     error_code="NETWORK_OPERATION_FAILED",
-                    details={"original_error": str(e)}
+                    details={"original_error": str(e)},
                 ) from e
 
 
@@ -347,35 +391,37 @@ class ErrorRecovery:
 # LOGGING CONFIGURATION
 # ==============================================================================
 
-def setup_error_logging(log_file: Optional[str] = None, 
-                       log_level: int = logging.INFO) -> logging.Logger:
+
+def setup_error_logging(
+    log_file: Optional[str] = None, log_level: int = logging.INFO
+) -> logging.Logger:
     """Richte Error-Logging ein."""
     logger = logging.getLogger("wlan_tool")
     logger.setLevel(log_level)
-    
+
     # Verhindere doppelte Handler
     if logger.handlers:
         return logger
-    
+
     # Console Handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
     console_formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
-    
+
     # File Handler (optional)
     if log_file:
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)
         file_formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s'
+            "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
-    
+
     return logger
 
 
@@ -383,29 +429,30 @@ def setup_error_logging(log_file: Optional[str] = None,
 # UTILITY FUNCTIONS
 # ==============================================================================
 
+
 def get_error_summary(exception: Exception) -> Dict[str, Any]:
     """Erstelle eine Zusammenfassung eines Fehlers."""
     summary = {
         "type": type(exception).__name__,
         "message": str(exception),
-        "timestamp": None
+        "timestamp": None,
     }
-    
+
     if isinstance(exception, WLANToolError):
-        summary.update({
-            "error_code": exception.error_code,
-            "details": exception.details
-        })
-    
+        summary.update(
+            {"error_code": exception.error_code, "details": exception.details}
+        )
+
     return summary
 
 
-def log_error_with_context(logger: logging.Logger, error: Exception, 
-                          context: Dict[str, Any]) -> None:
+def log_error_with_context(
+    logger: logging.Logger, error: Exception, context: Dict[str, Any]
+) -> None:
     """Logge Fehler mit Kontextinformationen."""
     error_summary = get_error_summary(error)
     error_summary.update(context)
-    
+
     logger.error(f"Error occurred: {error_summary}")
     logger.debug(f"Full traceback: {traceback.format_exc()}")
 
@@ -414,16 +461,19 @@ def log_error_with_context(logger: logging.Logger, error: Exception,
 # VALIDATION FUNCTIONS
 # ==============================================================================
 
+
 def validate_mac_address(mac: str) -> bool:
     """Validiere MAC-Adresse."""
     import re
-    pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+
+    pattern = r"^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
     return bool(re.match(pattern, mac))
 
 
 def validate_ip_address(ip: str) -> bool:
     """Validiere IP-Adresse."""
     import socket
+
     try:
         socket.inet_aton(ip)
         return True

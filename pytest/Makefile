@@ -1,65 +1,93 @@
-# Makefile für pytest-Tests
+# Makefile für Plugin-Tests
 
-.PHONY: help test test-unit test-integration test-performance test-coverage test-fast test-slow clean
+.PHONY: help test test-plugins test-clustering test-ensemble test-rl test-all clean install-deps
 
 help: ## Zeige verfügbare Ziele
-	@echo "Verfügbare Test-Ziele:"
-	@echo "  test              - Führe alle Tests aus"
-	@echo "  test-unit         - Führe nur Unit-Tests aus"
-	@echo "  test-integration  - Führe nur Integrationstests aus"
-	@echo "  test-performance  - Führe nur Performance-Tests aus"
-	@echo "  test-coverage     - Führe Tests mit Coverage-Report aus"
-	@echo "  test-fast         - Führe nur schnelle Tests aus"
-	@echo "  test-slow         - Führe nur langsame Tests aus"
-	@echo "  clean             - Bereinige Test-Artefakte"
+	@echo "Verfügbare Ziele:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 test: ## Führe alle Tests aus
 	pytest -v
 
-test-unit: ## Führe nur Unit-Tests aus
-	pytest -v -m "not integration and not performance"
+test-plugins: ## Führe nur Plugin-Tests aus
+	pytest -v -m plugin
 
-test-integration: ## Führe nur Integrationstests aus
-	pytest -v -m "integration"
+test-clustering: ## Führe Clustering-Plugin-Tests aus
+	pytest -v -m clustering
 
-test-performance: ## Führe nur Performance-Tests aus
-	pytest -v -m "performance"
+test-ensemble: ## Führe Ensemble-Plugin-Tests aus
+	pytest -v -m ensemble
 
-test-coverage: ## Führe Tests mit Coverage-Report aus
-	pytest -v --cov=wlan_tool --cov-report=html:htmlcov --cov-report=term-missing --cov-report=xml
+test-rl: ## Führe RL-Plugin-Tests aus
+	pytest -v -m rl
 
-test-fast: ## Führe nur schnelle Tests aus
+test-all: ## Führe alle Tests mit Coverage aus
+	pytest -v --cov=wlan_tool --cov=plugins --cov-report=html:htmlcov --cov-report=term-missing
+
+test-fast: ## Führe schnelle Tests aus (ohne langsame)
 	pytest -v -m "not slow"
 
-test-slow: ## Führe nur langsame Tests aus
-	pytest -v -m "slow"
+test-integration: ## Führe Integration-Tests aus
+	pytest -v -m integration
 
-test-network: ## Führe Tests mit Netzwerk-Zugriff aus
-	pytest -v -m "network"
+test-unit: ## Führe Unit-Tests aus
+	pytest -v -m unit
 
-test-hardware: ## Führe Tests mit Hardware-Anforderungen aus
-	pytest -v -m "hardware"
-
-test-verbose: ## Führe Tests mit detaillierter Ausgabe aus
-	pytest -vv --tb=long
-
-test-debug: ## Führe Tests im Debug-Modus aus
-	pytest -vv --tb=long --pdb
+install-deps: ## Installiere Plugin-Dependencies
+	@echo "Installiere Dependencies für alle Plugins..."
+	@for plugin_dir in ../plugins/*/; do \
+		if [ -f "$$plugin_dir/requirements.txt" ]; then \
+			echo "Installing dependencies for $$(basename $$plugin_dir)..."; \
+			pip install -r "$$plugin_dir/requirements.txt"; \
+		fi; \
+	done
 
 clean: ## Bereinige Test-Artefakte
 	rm -rf htmlcov/
-	rm -rf .coverage
 	rm -rf .pytest_cache/
-	rm -rf coverage.xml
-	rm -rf *.db
-	rm -rf /tmp/test_*.gexf
-	rm -rf /tmp/test_*.html
-	rm -rf /tmp/test_*.pcap
+	rm -rf __pycache__/
 	find . -name "*.pyc" -delete
-	find . -name "__pycache__" -type d -exec rm -rf {} +
+	find . -name "*.pyo" -delete
 
-install-deps: ## Installiere Test-Abhängigkeiten
-	pip install pytest pytest-cov pytest-mock psutil
+lint: ## Führe Linting aus
+	flake8 ../plugins/
+	black --check ../plugins/
+	isort --check-only ../plugins/
 
-# Standard-Ziel
-.DEFAULT_GOAL := help
+format: ## Formatiere Code
+	black ../plugins/
+	isort ../plugins/
+
+# Plugin-spezifische Ziele
+test-clustering-advanced: ## Teste nur Advanced Clustering Plugin
+	python -m pytest -v ../plugins/clustering_advanced/tests/
+
+test-ensemble-models: ## Teste nur Ensemble Models Plugin
+	python -m pytest -v ../plugins/ensemble_models/tests/
+
+test-reinforcement-learning: ## Teste nur RL Plugin
+	python -m pytest -v ../plugins/reinforcement_learning/tests/
+
+test-sankey: ## Teste nur Sankey Plugin
+	python -m pytest -v ../plugins/sankey/tests/
+
+test-umap-plot: ## Teste nur UMAP Plot Plugin
+	python -m pytest -v ../plugins/umap_plot/tests/
+
+health-check: ## Führe Plugin Health Check aus
+	python3 ../scripts/plugin_health_check.py
+
+health-check-json: ## Führe Plugin Health Check aus und speichere als JSON
+	python3 ../scripts/plugin_health_check.py --output plugin_health.json
+
+plugin-manager: ## Zeige Plugin Manager Hilfe
+	python3 ../scripts/plugin_manager.py --help
+
+plugin-list: ## Liste alle Plugins auf
+	python3 ../scripts/plugin_manager.py list
+
+plugin-install: ## Installiere alle Plugin Dependencies
+	python3 ../scripts/plugin_manager.py install
+
+plugin-update: ## Aktualisiere alle Plugin Dependencies
+	python3 ../scripts/plugin_manager.py update

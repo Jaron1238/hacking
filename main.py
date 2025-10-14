@@ -118,6 +118,20 @@ def parse_args():
 
 def load_plugins(console: Console):
     """Sucht und lädt alle Analyse-Plugins aus dem 'plugins'-Verzeichnis."""
+    from plugins import load_all_plugins
+    
+    plugin_dir = Path(__file__).parent / "plugins"
+    plugins = load_all_plugins(plugin_dir)
+    
+    # Fallback: Lade alte Plugin-Struktur für Kompatibilität
+    if not plugins:
+        console.print("[yellow]Keine neuen Plugins gefunden, versuche alte Struktur...[/yellow]")
+        plugins = load_legacy_plugins(console)
+    
+    return plugins
+
+def load_legacy_plugins(console: Console):
+    """Lädt Plugins aus der alten Struktur (analysis_*.py)."""
     plugins = {}
     plugin_dir = Path(__file__).parent / "plugins"
     if not plugin_dir.is_dir():
@@ -131,9 +145,9 @@ def load_plugins(console: Console):
             module_spec.loader.exec_module(module)
             if hasattr(module, 'run'):
                 plugins[plugin_name] = module
-                console.print(f"[dim]Plugin '{plugin_name}' erfolgreich geladen.[/dim]")
+                console.print(f"[dim]Legacy Plugin '{plugin_name}' erfolgreich geladen.[/dim]")
         except Exception as e:
-            console.print(f"[bold red]Fehler beim Laden des Plugins '{plugin_name}': {e}[/bold red]")
+            console.print(f"[bold red]Fehler beim Laden des Legacy-Plugins '{plugin_name}': {e}[/bold red]")
             
     return plugins
 

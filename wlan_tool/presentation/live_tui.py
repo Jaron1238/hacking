@@ -5,21 +5,22 @@ Live TUI für die Erfassung von WiFi-Daten.
 Zeigt bereits während des Capturings gefundene Geräte an.
 """
 
+import multiprocessing as mp
+import time
+from collections import Counter, defaultdict
+from pathlib import Path
+from queue import Empty
+from typing import Dict, Optional, Set
+
 from textual.app import App, ComposeResult
-from textual.widgets import Header, Footer, DataTable, Static, Label, ProgressBar
-from textual.containers import Vertical, Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.timer import Timer
-import time
-from collections import defaultdict, Counter
-from typing import Dict, Set, Optional
-import multiprocessing as mp
-from queue import Empty
-from pathlib import Path
+from textual.widgets import DataTable, Footer, Header, Label, ProgressBar, Static
 
+from .. import utils
 from ..storage.data_models import WifiEvent
 from ..storage.state import WifiAnalysisState
-from .. import utils
 
 
 class LiveCaptureTUI(App):
@@ -35,7 +36,7 @@ class LiveCaptureTUI(App):
     packets_processed = reactive(0)
     current_channel = reactive(0)
     capture_duration = reactive(0.0)
-    
+
     def __init__(self, live_queue: mp.Queue, duration: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.live_queue = live_queue
@@ -43,7 +44,7 @@ class LiveCaptureTUI(App):
         self.start_time = time.time()
         self.state = WifiAnalysisState()
         self.update_timer: Optional[Timer] = None
-        
+
         # Statistiken
         self.channel_stats = Counter()
         self.vendor_stats = Counter()
@@ -53,11 +54,11 @@ class LiveCaptureTUI(App):
     def compose(self) -> ComposeResult:
         """Erstellt das Layout der Live-TUI."""
         yield Header()
-        
+
         with Vertical(id="stats-pane"):
             yield Label("📊 Capture-Statistiken", id="stats-title")
             yield Static(id="stats-content")
-            
+
         with Horizontal():
             with Vertical(id="left-pane"):
                 yield Label("📡 Access Points", id="aps-title")
@@ -65,11 +66,11 @@ class LiveCaptureTUI(App):
             with Vertical(id="right-pane"):
                 yield Label("📱 Clients", id="clients-title")
                 yield DataTable(id="clients-table")
-        
+
         with Vertical(id="bottom-pane"):
             yield Label("📈 Kanal-Aktivität", id="channel-title")
             yield DataTable(id="channel-table")
-            
+
         yield Footer()
 
     def on_mount(self) -> None:
@@ -77,15 +78,15 @@ class LiveCaptureTUI(App):
         # AP-Tabelle initialisieren
         aps_table = self.query_one("#aps-table", DataTable)
         aps_table.add_columns("BSSID", "SSID", "Vendor", "Kanal", "RSSI", "Beacons")
-        
+
         # Client-Tabelle initialisieren
         clients_table = self.query_one("#clients-table", DataTable)
         clients_table.add_columns("MAC", "Vendor", "Probes", "APs", "RSSI")
-        
+
         # Kanal-Tabelle initialisieren
         channel_table = self.query_one("#channel-table", DataTable)
         channel_table.add_columns("Kanal", "APs", "Clients", "Pakete", "Aktivität")
-        
+
         # Update-Timer starten
         self.update_timer = self.set_timer(1.0, self.update_display, repeat=True)
 
@@ -93,15 +94,15 @@ class LiveCaptureTUI(App):
         """Aktualisiert die Anzeige mit neuen Daten."""
         # Verarbeite neue Events aus der Queue
         self.process_new_events()
-        
+
         # Aktualisiere Statistiken
         self.update_stats()
-        
+
         # Aktualisiere Tabellen
         self.update_aps_table()
         self.update_clients_table()
         self.update_channel_table()
-        
+
         # Aktualisiere Fortschrittsbalken
         self.update_progress()
 
@@ -114,31 +115,31 @@ class LiveCaptureTUI(App):
                 if isinstance(event_data, WifiEvent):
                     self.state.update_from_event(event_data)
                     processed += 1
-                    
+
                     # Sammle Statistiken
-                    if event_data.get('type') == 'beacon':
-                        bssid = event_data.get('bssid', '')
-                        ssid = event_data.get('ssid', '<hidden>')
-                        channel = event_data.get('channel', 0)
-                        rssi = event_data.get('rssi', -100)
-                        
+                    if event_data.get("type") == "beacon":
+                        bssid = event_data.get("bssid", "")
+                        ssid = event_data.get("ssid", "<hidden>")
+                        channel = event_data.get("channel", 0)
+                        rssi = event_data.get("rssi", -100)
+
                         if bssid:
                             self.channel_stats[channel] += 1
                             self.ssid_stats[ssid] += 1
                             if rssi:
                                 self.rssi_stats[bssid].append(rssi)
-                                
-                    elif event_data.get('type') in ['probe_req', 'data']:
-                        client = event_data.get('client', '')
+
+                    elif event_data.get("type") in ["probe_req", "data"]:
+                        client = event_data.get("client", "")
                         if client:
-                            self.channel_stats[event_data.get('channel', 0)] += 1
-                            
+                            self.channel_stats[event_data.get("channel", 0)] += 1
+
             except Empty:
                 break
             except Exception as e:
                 self.log.error(f"Fehler beim Verarbeiten von Events: {e}")
                 break
-        
+
         self.packets_processed += processed
 
     def update_stats(self) -> None:
@@ -152,11 +153,12 @@ class LiveCaptureTUI(App):
         """Aktualisiert die AP-Tabelle."""
         aps_table = self.query_one("#aps-table", DataTable)
         aps_table.clear()
-        
+
         # Sortiere APs nach Aktivität
-        sorted_aps = sorted(self.state.aps.items(), 
-                          key=lambda x: x[1].beacon_count, reverse=True)
-        
+        sorted_aps = sorted(
+            self.state.aps.items(), key=lambda x: x[1].beacon_count, reverse=True
+        )
+
         for bssid, ap_state in sorted_aps[:20]:  # Top 20 APs
             vendor = utils.lookup_vendor(bssid) or "Unknown"
             avg_rssi = int(ap_state.rssi_w.mean) if ap_state.rssi_w.n > 0 else -100
@@ -166,60 +168,71 @@ class LiveCaptureTUI(App):
                 vendor,
                 str(ap_state.channel or 0),
                 f"{avg_rssi} dBm",
-                str(ap_state.beacon_count)
+                str(ap_state.beacon_count),
             )
 
     def update_clients_table(self) -> None:
         """Aktualisiert die Client-Tabelle."""
         clients_table = self.query_one("#clients-table", DataTable)
         clients_table.clear()
-        
+
         # Sortiere Clients nach Aktivität
-        sorted_clients = sorted(self.state.clients.items(),
-                              key=lambda x: x[1].count, reverse=True)
-        
+        sorted_clients = sorted(
+            self.state.clients.items(), key=lambda x: x[1].count, reverse=True
+        )
+
         for mac, client_state in sorted_clients[:20]:  # Top 20 Clients
             vendor = utils.intelligent_vendor_lookup(mac, client_state) or "Unknown"
-            avg_rssi = int(client_state.rssi_w.mean) if client_state.rssi_w.n > 0 else -100
+            avg_rssi = (
+                int(client_state.rssi_w.mean) if client_state.rssi_w.n > 0 else -100
+            )
             clients_table.add_row(
                 mac,
                 vendor,
                 str(len(client_state.probes)),
                 str(len(client_state.seen_with)),
-                f"{avg_rssi} dBm"
+                f"{avg_rssi} dBm",
             )
 
     def update_channel_table(self) -> None:
         """Aktualisiert die Kanal-Aktivitätstabelle."""
         channel_table = self.query_one("#channel-table", DataTable)
         channel_table.clear()
-        
+
         # Sortiere Kanäle nach Aktivität
-        sorted_channels = sorted(self.channel_stats.items(), 
-                               key=lambda x: x[1], reverse=True)
-        
+        sorted_channels = sorted(
+            self.channel_stats.items(), key=lambda x: x[1], reverse=True
+        )
+
         for channel, count in sorted_channels[:10]:  # Top 10 Kanäle
             # Zähle APs und Clients pro Kanal
-            aps_on_channel = sum(1 for ap in self.state.aps.values() 
-                               if ap.channel == channel)
-            clients_on_channel = sum(1 for client in self.state.clients.values()
-                                   if any(ap.channel == channel for ap in self.state.aps.values()
-                                         if ap.bssid in client.seen_with))
-            
+            aps_on_channel = sum(
+                1 for ap in self.state.aps.values() if ap.channel == channel
+            )
+            clients_on_channel = sum(
+                1
+                for client in self.state.clients.values()
+                if any(
+                    ap.channel == channel
+                    for ap in self.state.aps.values()
+                    if ap.bssid in client.seen_with
+                )
+            )
+
             activity_level = "🔴" if count > 100 else "🟡" if count > 50 else "🟢"
             channel_table.add_row(
                 str(channel),
                 str(aps_on_channel),
                 str(clients_on_channel),
                 str(count),
-                activity_level
+                activity_level,
             )
 
     def update_progress(self) -> None:
         """Aktualisiert den Fortschrittsbalken."""
         progress = min(100, (self.capture_duration / self.duration) * 100)
         remaining = max(0, self.duration - self.capture_duration)
-        
+
         stats_content = self.query_one("#stats-content", Static)
         stats_text = f"""
 ⏱️  Verstrichene Zeit: {self.capture_duration:.0f}s / {self.duration}s
