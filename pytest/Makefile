@@ -7,31 +7,31 @@ help: ## Zeige verfügbare Ziele
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 test: ## Führe alle Tests aus
-	python -m pytest -v
+	pytest -v
 
 test-plugins: ## Führe nur Plugin-Tests aus
-	python -m pytest -v -m plugin
+	pytest -v -m plugin
 
 test-clustering: ## Führe Clustering-Plugin-Tests aus
-	python -m pytest -v -m clustering
+	pytest -v -m clustering
 
 test-ensemble: ## Führe Ensemble-Plugin-Tests aus
-	python -m pytest -v -m ensemble
+	pytest -v -m ensemble
 
 test-rl: ## Führe RL-Plugin-Tests aus
-	python -m pytest -v -m rl
+	pytest -v -m rl
 
 test-all: ## Führe alle Tests mit Coverage aus
-	python -m pytest -v --cov=wlan_tool --cov=plugins --cov-report=html:htmlcov --cov-report=term-missing
+	pytest -v --cov=wlan_tool --cov=plugins --cov-report=html:htmlcov --cov-report=term-missing
 
 test-fast: ## Führe schnelle Tests aus (ohne langsame)
-	python -m pytest -v -m "not slow"
+	pytest -v -m "not slow"
 
 test-integration: ## Führe Integration-Tests aus
-	python -m pytest -v -m integration
+	pytest -v -m integration
 
 test-unit: ## Führe Unit-Tests aus
-	python -m pytest -v -m unit
+	pytest -v -m unit
 
 install-deps: ## Installiere Plugin-Dependencies
 	@echo "Installiere Dependencies für alle Plugins..."
