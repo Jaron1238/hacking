@@ -6,40 +6,40 @@ Verwaltet Plugins: installieren, deinstallieren, testen, etc.
 """
 
 import argparse
+import json
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
-import json
 from typing import Dict, List, Optional
 
 # Füge Projekt-Root zum Python-Pfad hinzu
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from plugins import load_all_plugins, BasePlugin
+from plugins import BasePlugin, load_all_plugins
 
 
 class PluginManager:
     """Manager für Plugin-Operationen."""
-    
+
     def __init__(self, plugin_dir: Path = None):
         self.plugin_dir = plugin_dir or project_root / "plugins"
         self.plugins = {}
         self.load_plugins()
-    
+
     def load_plugins(self):
         """Lädt alle verfügbaren Plugins."""
         self.plugins = load_all_plugins(self.plugin_dir)
-    
+
     def list_plugins(self) -> None:
         """Listet alle verfügbaren Plugins auf."""
         print("Verfügbare Plugins:")
         print("=" * 50)
-        
+
         if not self.plugins:
             print("Keine Plugins gefunden.")
             return
-        
+
         for name, plugin in self.plugins.items():
             metadata = plugin.get_metadata()
             print(f"Name: {metadata.name}")
@@ -47,16 +47,18 @@ class PluginManager:
             print(f"  Beschreibung: {metadata.description}")
             print(f"  Autor: {metadata.author}")
             print(f"  Dependencies: {', '.join(metadata.dependencies)}")
-            print(f"  Verfügbar: {'Ja' if plugin.validate_dependencies() else 'Nein (Dependencies fehlen)'}")
+            print(
+                f"  Verfügbar: {'Ja' if plugin.validate_dependencies() else 'Nein (Dependencies fehlen)'}"
+            )
             print()
-    
+
     def install_dependencies(self, plugin_name: str = None) -> bool:
         """Installiert Dependencies für ein Plugin oder alle Plugins."""
         if plugin_name:
             if plugin_name not in self.plugins:
                 print(f"Plugin '{plugin_name}' nicht gefunden.")
                 return False
-            
+
             plugin = self.plugins[plugin_name]
             return self._install_plugin_dependencies(plugin)
         else:
@@ -67,86 +69,90 @@ class PluginManager:
                 if not self._install_plugin_dependencies(plugin):
                     success = False
             return success
-    
+
     def _install_plugin_dependencies(self, plugin: BasePlugin) -> bool:
         """Installiert Dependencies für ein spezifisches Plugin."""
         metadata = plugin.get_metadata()
-        
+
         if not metadata.dependencies:
             print(f"  Keine Dependencies für {metadata.name}")
             return True
-        
+
         try:
             # Versuche pip install
             cmd = [sys.executable, "-m", "pip", "install"] + metadata.dependencies
             result = subprocess.run(cmd, capture_output=True, text=True)
-            
+
             if result.returncode == 0:
                 print(f"  Dependencies für {metadata.name} erfolgreich installiert")
                 return True
             else:
-                print(f"  Fehler beim Installieren der Dependencies für {metadata.name}:")
+                print(
+                    f"  Fehler beim Installieren der Dependencies für {metadata.name}:"
+                )
                 print(f"  {result.stderr}")
                 return False
         except Exception as e:
-            print(f"  Fehler beim Installieren der Dependencies für {metadata.name}: {e}")
+            print(
+                f"  Fehler beim Installieren der Dependencies für {metadata.name}: {e}"
+            )
             return False
-    
+
     def test_plugin(self, plugin_name: str) -> bool:
         """Testet ein spezifisches Plugin."""
         if plugin_name not in self.plugins:
             print(f"Plugin '{plugin_name}' nicht gefunden.")
             return False
-        
+
         plugin_dir = self.plugin_dir / plugin_name
         tests_dir = plugin_dir / "tests"
-        
+
         if not tests_dir.exists():
             print(f"Keine Tests für Plugin '{plugin_name}' gefunden.")
             return False
-        
+
         try:
             # Führe pytest für das Plugin aus
             cmd = [sys.executable, "-m", "pytest", str(tests_dir), "-v"]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            
+
             print(f"Test-Ergebnisse für {plugin_name}:")
             print(result.stdout)
             if result.stderr:
                 print("Fehler:")
                 print(result.stderr)
-            
+
             return result.returncode == 0
         except Exception as e:
             print(f"Fehler beim Ausführen der Tests für {plugin_name}: {e}")
             return False
-    
+
     def test_all_plugins(self) -> Dict[str, bool]:
         """Testet alle Plugins."""
         results = {}
-        
+
         for name in self.plugins.keys():
             print(f"\n{'='*50}")
             print(f"Teste Plugin: {name}")
-            print('='*50)
+            print("=" * 50)
             results[name] = self.test_plugin(name)
-        
+
         return results
-    
+
     def create_plugin_template(self, plugin_name: str) -> bool:
         """Erstellt ein Template für ein neues Plugin."""
         plugin_dir = self.plugin_dir / plugin_name
         tests_dir = plugin_dir / "tests"
-        
+
         if plugin_dir.exists():
             print(f"Plugin-Verzeichnis '{plugin_name}' existiert bereits.")
             return False
-        
+
         try:
             # Erstelle Verzeichnisse
             plugin_dir.mkdir(parents=True, exist_ok=True)
             tests_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # Erstelle __init__.py
             init_content = f'''"""
 {plugin_name.title()} Plugin für WLAN-Analyse-Tool.
@@ -157,7 +163,7 @@ from .plugin import Plugin
 __all__ = ['Plugin']
 '''
             (plugin_dir / "__init__.py").write_text(init_content)
-            
+
             # Erstelle plugin.py Template
             plugin_content = f'''"""
 {plugin_name.title()} Plugin.
@@ -198,10 +204,10 @@ class Plugin(BasePlugin):
             logger.error(f"Fehler im {plugin_name} Plugin: {{e}}", exc_info=True)
 '''
             (plugin_dir / "plugin.py").write_text(plugin_content)
-            
+
             # Erstelle tests/__init__.py
             (tests_dir / "__init__.py").write_text('"""Tests für das Plugin."""')
-            
+
             # Erstelle test_plugin.py Template
             test_content = f'''"""
 Tests für das {plugin_name.title()} Plugin.
@@ -254,25 +260,27 @@ class Test{plugin_name.title()}Plugin:
         assert mock_console.print.called
 '''
             (tests_dir / f"test_{plugin_name}.py").write_text(test_content)
-            
+
             # Erstelle requirements.txt
-            (plugin_dir / "requirements.txt").write_text("# Dependencies für das Plugin\n# Füge hier deine Dependencies hinzu\n")
-            
+            (plugin_dir / "requirements.txt").write_text(
+                "# Dependencies für das Plugin\n# Füge hier deine Dependencies hinzu\n"
+            )
+
             print(f"Plugin-Template für '{plugin_name}' erstellt in: {plugin_dir}")
             return True
-            
+
         except Exception as e:
             print(f"Fehler beim Erstellen des Plugin-Templates: {e}")
             return False
-    
+
     def get_plugin_info(self, plugin_name: str) -> Optional[Dict]:
         """Gibt detaillierte Informationen über ein Plugin zurück."""
         if plugin_name not in self.plugins:
             return None
-        
+
         plugin = self.plugins[plugin_name]
         metadata = plugin.get_metadata()
-        
+
         return {
             "name": metadata.name,
             "version": metadata.version,
@@ -280,7 +288,7 @@ class Test{plugin_name.title()}Plugin:
             "author": metadata.author,
             "dependencies": metadata.dependencies,
             "dependencies_available": plugin.validate_dependencies(),
-            "plugin_dir": str(self.plugin_dir / plugin_name)
+            "plugin_dir": str(self.plugin_dir / plugin_name),
         }
 
 
@@ -288,46 +296,67 @@ def main():
     """Hauptfunktion des Plugin-Managers."""
     parser = argparse.ArgumentParser(description="Plugin-Manager für WLAN-Analyse-Tool")
     subparsers = parser.add_subparsers(dest="command", help="Verfügbare Befehle")
-    
+
     # List command
     subparsers.add_parser("list", help="Liste alle Plugins auf")
-    
+
     # Install command
-    install_parser = subparsers.add_parser("install", help="Installiere Plugin-Dependencies")
-    install_parser.add_argument("plugin", nargs="?", help="Plugin-Name (optional, installiert alle wenn nicht angegeben)")
-    
+    install_parser = subparsers.add_parser(
+        "install", help="Installiere Plugin-Dependencies"
+    )
+    install_parser.add_argument(
+        "plugin",
+        nargs="?",
+        help="Plugin-Name (optional, installiert alle wenn nicht angegeben)",
+    )
+
     # Test command
     test_parser = subparsers.add_parser("test", help="Teste Plugins")
-    test_parser.add_argument("plugin", nargs="?", help="Plugin-Name (optional, testet alle wenn nicht angegeben)")
-    
+    test_parser.add_argument(
+        "plugin",
+        nargs="?",
+        help="Plugin-Name (optional, testet alle wenn nicht angegeben)",
+    )
+
     # Create command
-    create_parser = subparsers.add_parser("create", help="Erstelle ein neues Plugin-Template")
+    create_parser = subparsers.add_parser(
+        "create", help="Erstelle ein neues Plugin-Template"
+    )
     create_parser.add_argument("name", help="Name des neuen Plugins")
-    
+
     # Info command
     info_parser = subparsers.add_parser("info", help="Zeige Plugin-Informationen")
     info_parser.add_argument("plugin", help="Plugin-Name")
-    
+
     # Health command
     health_parser = subparsers.add_parser("health", help="Zeige Plugin-Health-Status")
     health_parser.add_argument("--output", "-o", help="JSON-Output-Datei")
-    health_parser.add_argument("--quiet", "-q", action="store_true", help="Nur JSON-Output")
-    
+    health_parser.add_argument(
+        "--quiet", "-q", action="store_true", help="Nur JSON-Output"
+    )
+
     # Update command
-    update_parser = subparsers.add_parser("update", help="Aktualisiere alle Plugin-Dependencies")
-    update_parser.add_argument("--force", "-f", action="store_true", help="Erzwinge Update auch wenn nicht nötig")
-    
+    update_parser = subparsers.add_parser(
+        "update", help="Aktualisiere alle Plugin-Dependencies"
+    )
+    update_parser.add_argument(
+        "--force",
+        "-f",
+        action="store_true",
+        help="Erzwinge Update auch wenn nicht nötig",
+    )
+
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return
-    
+
     manager = PluginManager()
-    
+
     if args.command == "list":
         manager.list_plugins()
-    
+
     elif args.command == "install":
         if args.plugin:
             success = manager.install_dependencies(args.plugin)
@@ -335,7 +364,7 @@ def main():
         else:
             success = manager.install_dependencies()
             sys.exit(0 if success else 1)
-    
+
     elif args.command == "test":
         if args.plugin:
             success = manager.test_plugin(args.plugin)
@@ -343,13 +372,15 @@ def main():
         else:
             results = manager.test_all_plugins()
             all_passed = all(results.values())
-            print(f"\nZusammenfassung: {sum(results.values())}/{len(results)} Plugins erfolgreich getestet")
+            print(
+                f"\nZusammenfassung: {sum(results.values())}/{len(results)} Plugins erfolgreich getestet"
+            )
             sys.exit(0 if all_passed else 1)
-    
+
     elif args.command == "create":
         success = manager.create_plugin_template(args.name)
         sys.exit(0 if success else 1)
-    
+
     elif args.command == "info":
         info = manager.get_plugin_info(args.plugin)
         if info:
@@ -357,29 +388,30 @@ def main():
         else:
             print(f"Plugin '{args.plugin}' nicht gefunden.")
             sys.exit(1)
-    
+
     elif args.command == "health":
         from scripts.plugin_health_check import PluginHealthChecker
+
         checker = PluginHealthChecker()
         health_report = checker.check_all_plugins()
-        
+
         if not args.quiet:
             checker.print_report()
-        
+
         if args.output:
             checker.save_report(Path(args.output))
-        
+
         # Exit Code basierend auf Health Score
-        summary = health_report.get('_summary', {})
-        health_percentage = summary.get('health_percentage', 0)
-        
+        summary = health_report.get("_summary", {})
+        health_percentage = summary.get("health_percentage", 0)
+
         if health_percentage >= 90:
             sys.exit(0)  # Alles OK
         elif health_percentage >= 70:
             sys.exit(1)  # Warnung
         else:
             sys.exit(2)  # Fehler
-    
+
     elif args.command == "update":
         print("Aktualisiere alle Plugin-Dependencies...")
         success = manager.install_dependencies()

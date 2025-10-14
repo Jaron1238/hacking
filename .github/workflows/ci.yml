@@ -4,128 +4,418 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
+  schedule:
+    # Täglich um 2:00 UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: "3.8"
+  PYTHON_VERSIONS: "3.8, 3.9, 3.10, 3.11"
 
 jobs:
-  test:
+  # Code-Qualitäts-Checks
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+    
+    - name: Run Flake8
+      run: |
+        flake8 wlan_tool tests scripts --max-line-length=88 --extend-ignore=E203,W503
+    
+    - name: Run MyPy
+      run: |
+        mypy wlan_tool tests scripts --config-file=pyproject.toml
+    
+    - name: Run Black
+      run: |
+        black --check --diff wlan_tool tests scripts
+    
+    - name: Run isort
+      run: |
+        isort --check-only --diff wlan_tool tests scripts
+    
+    - name: Run Bandit Security Scan
+      run: |
+        bandit -r wlan_tool scripts --exclude tests --format json -o bandit-report.json
+        bandit -r wlan_tool scripts --exclude tests
+    
+    - name: Run Safety Check
+      run: |
+        safety check --json --output safety-report.json
+        safety check
+    
+    - name: Run Radon Complexity Analysis
+      run: |
+        radon cc wlan_tool scripts -a -s --min B
+    
+    - name: Run Xenon Complexity Monitoring
+      run: |
+        xenon wlan_tool scripts --max-average A --max-modules B --max-absolute B
+    
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+
+  # Unit Tests
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8, 3.9, 3.10, 3.11, 3.12]
+        python-version: [3.8, 3.9, 3.10, 3.11]
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libpcap-dev tcpdump
-    
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r pytest/requirements-test.txt
-    
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        flake8 wlan_tool/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 wlan_tool/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
-    - name: Type check with mypy
-      run: |
-        pip install mypy
-        mypy wlan_tool/ --ignore-missing-imports
-    
-    - name: Test with pytest
-      run: |
-        cd pytest
-        pytest -v --cov=wlan_tool --cov-report=xml --cov-report=html
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
       with:
-        file: ./pytest/coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-
-  plugin-test:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -r pytest/requirements-test.txt
-        pip install plotly umap-learn hdbscan gym torch
+        pip install -r requirements-dev.txt
     
-    - name: Test Plugin System
+    - name: Run Unit Tests
       run: |
-        python scripts/plugin_manager.py health
-        python scripts/plugin_manager.py list
-        cd pytest && make test-plugins
+        pytest tests/unit/ -v --cov=wlan_tool --cov-report=xml --cov-report=html --junitxml=test-results.xml
+    
+    - name: Upload Coverage Reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          test-results.xml
+          htmlcov/
+          coverage.xml
 
-  security:
+  # Integration Tests
+  integration-tests:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    needs: test
+    needs: unit-tests
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: ${{ env.PYTHON_VERSION }}
     
-    - name: Install security tools
+    - name: Install dependencies
       run: |
-        pip install bandit safety
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run Integration Tests
+      run: |
+        pytest tests/integration/ -v --cov=wlan_tool --cov-report=xml --cov-report=html --junitxml=integration-test-results.xml
+    
+    - name: Upload Integration Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          integration-test-results.xml
+          htmlcov/
+          coverage.xml
+
+  # Performance Tests
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run Performance Tests
+      run: |
+        pytest tests/performance/ -v --benchmark-only --benchmark-sort=mean --benchmark-json=benchmark-results.json
+    
+    - name: Run Memory Profiling Tests
+      run: |
+        pytest tests/performance/test_memory_profiling.py -v -m memory
+    
+    - name: Upload Performance Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-results
+        path: |
+          benchmark-results.json
+          .benchmarks/
+
+  # Plugin Tests
+  plugin-tests:
+    name: Plugin Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Install Plugin Dependencies
+      run: |
+        python scripts/plugin_manager.py install-all
+    
+    - name: Run Plugin Tests
+      run: |
+        pytest tests/plugins/ -v --cov=plugins --cov-report=xml --cov-report=html --junitxml=plugin-test-results.xml
+    
+    - name: Run Plugin Health Check
+      run: |
+        python scripts/plugin_health_check.py
+    
+    - name: Upload Plugin Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: plugin-test-results
+        path: |
+          plugin-test-results.xml
+          htmlcov/
+          coverage.xml
+
+  # Security Tests
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run Security Tests
+      run: |
+        pytest tests/security/ -v --junitxml=security-test-results.xml
     
     - name: Run Bandit Security Scan
       run: |
-        bandit -r wlan_tool/ -f json -o bandit-report.json
-        bandit -r wlan_tool/ -ll
+        bandit -r wlan_tool scripts --exclude tests --format json -o bandit-report.json
+        bandit -r wlan_tool scripts --exclude tests
     
     - name: Run Safety Check
       run: |
         safety check --json --output safety-report.json
         safety check
+    
+    - name: Upload Security Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-test-results
+        path: |
+          security-test-results.xml
+          bandit-report.json
+          safety-report.json
 
-  build:
+  # Documentation Tests
+  documentation-tests:
+    name: Documentation Tests
     runs-on: ubuntu-latest
-    needs: [test, plugin-test, security]
-    if: github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v4
     
-    - name: Set up Python 3.11
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.11
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run Documentation Tests
+      run: |
+        pytest tests/documentation/ -v --junitxml=documentation-test-results.xml
+    
+    - name: Build Documentation
+      run: |
+        cd docs
+        make html
+    
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: documentation
+        path: docs/_build/html/
+
+  # Build and Package
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests]
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
     
     - name: Build package
       run: |
-        pip install build
         python -m build
     
-    - name: Upload artifacts
+    - name: Check package
+      run: |
+        twine check dist/*
+    
+    - name: Upload Package
       uses: actions/upload-artifact@v3
       with:
         name: dist
         path: dist/
+
+  # Deploy (nur bei Push auf main)
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [build, performance-tests, plugin-tests, security-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    
+    - name: Download Package
+      uses: actions/download-artifact@v3
+      with:
+        name: dist
+        path: dist/
+    
+    - name: Deploy to PyPI (Test)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Deploying to PyPI Test..."
+        # Hier würde der echte PyPI-Upload stehen
+        # twine upload --repository testpypi dist/*
+    
+    - name: Deploy to PyPI (Production)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Deploying to PyPI Production..."
+        # Hier würde der echte PyPI-Upload stehen
+        # twine upload dist/*
+
+  # Notifications
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [code-quality, unit-tests, integration-tests, performance-tests, plugin-tests, security-tests, documentation-tests]
+    if: always()
+    
+    steps:
+    - name: Notify Success
+      if: ${{ needs.code-quality.result == 'success' && needs.unit-tests.result == 'success' && needs.integration-tests.result == 'success' }}
+      run: |
+        echo "✅ Alle Tests erfolgreich!"
+        # Hier könnte eine Slack/Discord/Email-Benachrichtigung stehen
+    
+    - name: Notify Failure
+      if: ${{ needs.code-quality.result == 'failure' || needs.unit-tests.result == 'failure' || needs.integration-tests.result == 'failure' }}
+      run: |
+        echo "❌ Einige Tests fehlgeschlagen!"
+        # Hier könnte eine Fehler-Benachrichtigung stehen

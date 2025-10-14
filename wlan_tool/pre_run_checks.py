@@ -1,12 +1,13 @@
 # data/pre_run_checks.py
 
-import shutil
-import sys
 import logging
+import shutil
 import subprocess
-from typing import List, Dict, Optional
+import sys
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
 
 def check_dependencies():
     """
@@ -24,38 +25,57 @@ def check_dependencies():
         logger.error("FEHLER: Die folgenden Abhängigkeiten wurden nicht gefunden:")
         for tool in missing_tools:
             logger.error(f"  - {tool}")
-        logger.error("Bitte installieren Sie die fehlenden Tools und versuchen Sie es erneut.")
-        logger.error("Auf Debian/Ubuntu-Systemen können die meisten mit 'sudo apt install tcpdump iw iproute2' installiert werden.")
+        logger.error(
+            "Bitte installieren Sie die fehlenden Tools und versuchen Sie es erneut."
+        )
+        logger.error(
+            "Auf Debian/Ubuntu-Systemen können die meisten mit 'sudo apt install tcpdump iw iproute2' installiert werden."
+        )
         sys.exit(1)
-    
+
     logger.info("Alle Systemabhängigkeiten sind vorhanden.")
 
 
 def find_wlan_interfaces() -> List[str]:
     """Sucht nach WLAN-Interfaces im System."""
     try:
-        result = subprocess.run(['iw', 'dev'], capture_output=True, text=True, check=True)
-        interfaces = [line.split()[1] for line in result.stdout.splitlines() if line.strip().startswith('Interface')]
+        result = subprocess.run(
+            ["iw", "dev"], capture_output=True, text=True, check=True
+        )
+        interfaces = [
+            line.split()[1]
+            for line in result.stdout.splitlines()
+            if line.strip().startswith("Interface")
+        ]
         return interfaces
     except (subprocess.CalledProcessError, FileNotFoundError):
         return []
+
 
 def get_interface_capabilities(interface: str) -> Optional[Dict]:
     """Prüft die Fähigkeiten eines spezifischen WLAN-Interfaces."""
     try:
         # Finde den zugehörigen phy-Namen
-        result_dev = subprocess.run(['iw', 'dev', interface, 'info'], capture_output=True, text=True, check=True)
-        phy_name = [line.split()[1] for line in result_dev.stdout.splitlines() if 'wiphy' in line][0]
-        
+        result_dev = subprocess.run(
+            ["iw", "dev", interface, "info"], capture_output=True, text=True, check=True
+        )
+        phy_name = [
+            line.split()[1]
+            for line in result_dev.stdout.splitlines()
+            if "wiphy" in line
+        ][0]
+
         # Prüfe die Fähigkeiten des phy
-        result_phy = subprocess.run(['iw', 'phy', phy_name, 'info'], capture_output=True, text=True, check=True)
+        result_phy = subprocess.run(
+            ["iw", "phy", phy_name, "info"], capture_output=True, text=True, check=True
+        )
         output = result_phy.stdout
-        
+
         capabilities = {
             "supports_monitor": "monitor" in output,
             "supports_5ghz": "5180 MHz" in output,
-            "supports_vht": "VHT Capabilities" in output, # 802.11ac
-            "supports_he": "HE Capabilities" in output    # 802.11ax
+            "supports_vht": "VHT Capabilities" in output,  # 802.11ac
+            "supports_he": "HE Capabilities" in output,  # 802.11ax
         }
         return capabilities
     except (subprocess.CalledProcessError, FileNotFoundError, IndexError):

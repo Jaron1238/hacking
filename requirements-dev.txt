@@ -1,0 +1,39 @@
+# Development Dependencies
+# Testing Framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-benchmark>=4.0.0
+pytest-xdist>=3.3.1
+pytest-html>=3.2.0
+pytest-json-report>=1.5.0
+hypothesis>=6.82.0
+factory-boy>=3.3.0
+faker>=19.3.0
+
+# Code Quality
+flake8>=6.0.0
+mypy>=1.5.0
+black>=23.7.0
+isort>=5.12.0
+pre-commit>=3.3.0
+bandit>=1.7.5
+safety>=2.3.0
+radon>=6.0.1
+xenon>=0.9.0
+
+# Performance Testing
+memory-profiler>=0.61.0
+psutil>=5.9.0
+py-spy>=0.3.14
+line-profiler>=4.1.1
+
+# Documentation
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0
+sphinx-autodoc-typehints>=1.24.0
+myst-parser>=2.0.0
+
+# CI/CD
+coverage>=7.2.0
+codecov>=2.1.13
