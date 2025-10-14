@@ -308,6 +308,15 @@ def main():
     info_parser = subparsers.add_parser("info", help="Zeige Plugin-Informationen")
     info_parser.add_argument("plugin", help="Plugin-Name")
     
+    # Health command
+    health_parser = subparsers.add_parser("health", help="Zeige Plugin-Health-Status")
+    health_parser.add_argument("--output", "-o", help="JSON-Output-Datei")
+    health_parser.add_argument("--quiet", "-q", action="store_true", help="Nur JSON-Output")
+    
+    # Update command
+    update_parser = subparsers.add_parser("update", help="Aktualisiere alle Plugin-Dependencies")
+    update_parser.add_argument("--force", "-f", action="store_true", help="Erzwinge Update auch wenn nicht nötig")
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -348,6 +357,37 @@ def main():
         else:
             print(f"Plugin '{args.plugin}' nicht gefunden.")
             sys.exit(1)
+    
+    elif args.command == "health":
+        from scripts.plugin_health_check import PluginHealthChecker
+        checker = PluginHealthChecker()
+        health_report = checker.check_all_plugins()
+        
+        if not args.quiet:
+            checker.print_report()
+        
+        if args.output:
+            checker.save_report(Path(args.output))
+        
+        # Exit Code basierend auf Health Score
+        summary = health_report.get('_summary', {})
+        health_percentage = summary.get('health_percentage', 0)
+        
+        if health_percentage >= 90:
+            sys.exit(0)  # Alles OK
+        elif health_percentage >= 70:
+            sys.exit(1)  # Warnung
+        else:
+            sys.exit(2)  # Fehler
+    
+    elif args.command == "update":
+        print("Aktualisiere alle Plugin-Dependencies...")
+        success = manager.install_dependencies()
+        if success:
+            print("✅ Alle Dependencies erfolgreich aktualisiert")
+        else:
+            print("❌ Einige Dependencies konnten nicht aktualisiert werden")
+        sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":

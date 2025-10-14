@@ -27,7 +27,7 @@ class Plugin(BasePlugin):
             version="1.0.0",
             description="Erstellt interaktive 2D-Karten aller Clients mit UMAP und Plotly",
             author="WLAN-Tool Team",
-            dependencies=["umap-learn", "plotly", "pandas"]
+            dependencies=["umap", "plotly", "pandas"]
         )
     
     def run(self, state, clustered_client_df: pd.DataFrame = None, client_feature_df: pd.DataFrame = None, outdir: Path = None, console = None, **kwargs):

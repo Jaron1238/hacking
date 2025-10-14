@@ -227,26 +227,57 @@ pytest -v --tb=long plugins/clustering_advanced/tests/
 - **Zweck**: Erweiterte Clustering-Algorithmen
 - **Algorithmen**: Spectral, Hierarchical, GMM, OPTICS, HDBSCAN
 - **Dependencies**: scikit-learn, plotly, hdbscan
+- **Status**: ✅ Vollständig getestet
 
 ### ensemble_models
 - **Zweck**: Ensemble Machine Learning Modelle
 - **Features**: Voting, Stacking, Bagging, Boosting
 - **Dependencies**: scikit-learn, plotly
+- **Status**: ✅ Vollständig getestet
 
 ### reinforcement_learning
 - **Zweck**: RL-basierte WiFi-Scanning-Optimierung
 - **Algorithmen**: Q-Learning, Deep Q-Learning
 - **Dependencies**: gym, torch (optional)
+- **Status**: ✅ Vollständig getestet
 
 ### sankey
 - **Zweck**: Roaming-Visualisierung
 - **Features**: Client-AP-Übergänge
 - **Dependencies**: plotly
+- **Status**: ✅ Vollständig getestet
 
 ### umap_plot
 - **Zweck**: UMAP-basierte Client-Visualisierung
 - **Features**: 2D-Embedding von Client-Features
-- **Dependencies**: umap-learn, plotly
+- **Dependencies**: umap, plotly
+- **Status**: ✅ Vollständig getestet
+
+## 🔧 Plugin-Management
+
+### Health Check
+```bash
+# Plugin-Gesundheit prüfen
+python3 scripts/plugin_health_check.py
+
+# Mit JSON-Output
+python3 scripts/plugin_health_check.py --output health_report.json
+
+# Über Makefile
+make health-check
+```
+
+### Erweiterte Plugin-Verwaltung
+```bash
+# Health Check
+python3 scripts/plugin_manager.py health
+
+# Dependencies aktualisieren
+python3 scripts/plugin_manager.py update
+
+# Alle verfügbaren Befehle
+python3 scripts/plugin_manager.py --help
+```
 
 ## 🤝 Beitragen
 

@@ -73,3 +73,21 @@ test-sankey: ## Teste nur Sankey Plugin
 
 test-umap-plot: ## Teste nur UMAP Plot Plugin
 	python -m pytest -v ../plugins/umap_plot/tests/
+
+health-check: ## Führe Plugin Health Check aus
+	python3 ../scripts/plugin_health_check.py
+
+health-check-json: ## Führe Plugin Health Check aus und speichere als JSON
+	python3 ../scripts/plugin_health_check.py --output plugin_health.json
+
+plugin-manager: ## Zeige Plugin Manager Hilfe
+	python3 ../scripts/plugin_manager.py --help
+
+plugin-list: ## Liste alle Plugins auf
+	python3 ../scripts/plugin_manager.py list
+
+plugin-install: ## Installiere alle Plugin Dependencies
+	python3 ../scripts/plugin_manager.py install
+
+plugin-update: ## Aktualisiere alle Plugin Dependencies
+	python3 ../scripts/plugin_manager.py update

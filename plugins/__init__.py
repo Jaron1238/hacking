@@ -53,12 +53,20 @@ class BasePlugin:
     
     def validate_dependencies(self) -> bool:
         """Überprüft, ob alle Dependencies verfügbar sind."""
+        missing_deps = []
         for dep in self.metadata.dependencies:
             try:
-                __import__(dep)
+                # Spezielle Behandlung für sklearn
+                if dep == "sklearn":
+                    __import__("sklearn")
+                else:
+                    __import__(dep)
             except ImportError:
-                logger.warning(f"Dependency '{dep}' für Plugin '{self.metadata.name}' nicht verfügbar")
-                return False
+                missing_deps.append(dep)
+        
+        if missing_deps:
+            logger.warning(f"Dependencies {missing_deps} für Plugin '{self.metadata.name}' nicht verfügbar")
+            return False
         return True
 
 def load_plugin_from_directory(plugin_dir: Path) -> Optional[BasePlugin]:
