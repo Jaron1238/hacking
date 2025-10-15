@@ -70,6 +70,9 @@ sudo python main.py --capture_mode --iface wlan0 --duration 300 --project my_sca
 
 # Mit Live-TUI
 sudo python main.py --capture_mode --iface wlan0 --live-tui --project my_scan
+
+# Erweiterte Capture mit DPI und Metriken
+sudo python main.py --capture_mode --iface wlan0 --enhanced-analysis --project my_scan
 ```
 
 ### **2. Daten analysieren**
@@ -79,6 +82,9 @@ python main.py --project my_scan --infer --cluster-clients --tui
 
 # Mit ML-Klassifizierung
 python main.py --project my_scan --ml-classify --tui
+
+# Erweiterte Analyse mit DPI, Metriken und Visualisierung
+python main.py --project my_scan --enhanced-analysis --3d-visualization --time-series-plots
 ```
 
 ### **3. Reports erstellen**
@@ -88,6 +94,9 @@ python main.py --project my_scan --html-report report.html
 
 # Graph-Export für Gephi
 python main.py --project my_scan --export-graph network.gexf
+
+# Erweiterte Reports mit DPI und Visualisierung
+python main.py --project my_scan --enhanced-analysis --custom-report --3d-visualization
 ```
 
 ## 🏗️ **Projektstruktur**
@@ -180,6 +189,27 @@ hacking/
 
 # Modell-Evaluation
 --evaluate-model --model device_classifier
+```
+
+### **Erweiterte Analyse**
+```bash
+# Erweiterte Analyse mit allen Features
+--enhanced-analysis
+
+# Deep Packet Inspection
+--deep-packet-inspection
+
+# Erweiterte Metriken
+--advanced-metrics
+
+# 3D-Visualisierung
+--3d-visualization
+
+# Zeitverlaufs-Diagramme
+--time-series-plots
+
+# Benutzerdefinierte Reports
+--custom-report
 ```
 
 ## ⚙️ **Konfiguration**
