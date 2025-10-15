@@ -2,7 +2,7 @@
 
 Ein umfassendes WLAN-Analyse-Tool mit **Machine Learning**, **Advanced Clustering** und **Enterprise-Features** zur Erfassung, Analyse und Klassifizierung von WiFi-Netzwerken und Clients.
 
-## 🚀 **Neue Features (v2.0)**
+## 🚀 **Neue Features (v2.1)**
 
 ### 🤖 **Machine Learning & AI**
 - **Automatisches ML-Training** mit verschiedenen Algorithmen
@@ -17,6 +17,14 @@ Ein umfassendes WLAN-Analyse-Tool mit **Machine Learning**, **Advanced Clusterin
 - **Real-time Metrics Collection** mit Prometheus-Export
 - **Health Check System** für alle Komponenten
 - **Comprehensive Error Handling** mit Recovery-Mechanismen
+
+### 🔍 **Erweiterte Analyse (v2.1)**
+- **Deep Packet Inspection (DPI)** - HTTP, DNS, DHCP Protokoll-Analyse
+- **Signal Quality Metrics** - SNR, PER, Channel Utilization
+- **Traffic Pattern Analysis** - Upload/Download-Raten, Burst-Patterns
+- **3D Network Visualization** - Interaktive räumliche Netzwerkdarstellung
+- **Time-series Plots** - Detaillierte Zeitverlaufs-Diagramme
+- **Custom Report Generation** - Automatische HTML-Reports mit Visualisierungen
 
 ### 📊 **Code-Qualität & Wartbarkeit**
 - **Vollständige Type Hints** für bessere IDE-Unterstützung
@@ -35,6 +43,10 @@ Ein umfassendes WLAN-Analyse-Tool mit **Machine Learning**, **Advanced Clusterin
 - 🏷️ **Interactive Labeling**: UI zum Trainieren von ML-Modellen
 - 📊 **Real-time Monitoring**: Live-TUI während Capture
 - 🔍 **Device Fingerprinting**: IE-Order-Hash und Packet-Timing
+- 🔍 **Deep Packet Inspection**: HTTP, DNS, DHCP Protokoll-Analyse
+- 📊 **Erweiterte Metriken**: Signal Quality, Traffic Patterns, Performance Benchmarking
+- 🌐 **3D-Visualisierung**: Interaktive räumliche Netzwerkdarstellung
+- 📈 **Zeitverlaufs-Analyse**: Detaillierte Zeitverlaufs-Diagramme
 
 ## 🛠️ **Voraussetzungen**
 
@@ -70,6 +82,9 @@ sudo python main.py --capture_mode --iface wlan0 --duration 300 --project my_sca
 
 # Mit Live-TUI
 sudo python main.py --capture_mode --iface wlan0 --live-tui --project my_scan
+
+# Erweiterte Capture mit DPI und Metriken
+sudo python main.py --capture_mode --iface wlan0 --enhanced-analysis --project my_scan
 ```
 
 ### **2. Daten analysieren**
@@ -79,6 +94,9 @@ python main.py --project my_scan --infer --cluster-clients --tui
 
 # Mit ML-Klassifizierung
 python main.py --project my_scan --ml-classify --tui
+
+# Erweiterte Analyse mit DPI, Metriken und Visualisierung
+python main.py --project my_scan --enhanced-analysis --3d-visualization --time-series-plots
 ```
 
 ### **3. Reports erstellen**
@@ -88,6 +106,9 @@ python main.py --project my_scan --html-report report.html
 
 # Graph-Export für Gephi
 python main.py --project my_scan --export-graph network.gexf
+
+# Erweiterte Reports mit DPI und Visualisierung
+python main.py --project my_scan --enhanced-analysis --custom-report --3d-visualization
 ```
 
 ## 🏗️ **Projektstruktur**
@@ -110,15 +131,22 @@ hacking/
 │   ├── health.py            # Health-Check-System
 │   ├── capture/             # Packet-Capture-Module
 │   │   ├── sniffer.py       # Packet-Sniffer
-│   │   └── channel_hopper.py # Channel-Hopping
+│   │   ├── channel_hopper.py # Channel-Hopping
+│   │   └── enhanced_sniffer.py # Erweiterter Sniffer mit DPI
 │   ├── analysis/            # Analyse-Module
 │   │   ├── logic.py         # Analyse-Logik
-│   │   └── device_profiler.py # Device-Profiling
+│   │   ├── device_profiler.py # Device-Profiling
+│   │   ├── deep_packet_inspection.py # Deep Packet Inspection
+│   │   ├── advanced_metrics.py # Erweiterte Metriken
+│   │   └── enhanced_analysis.py # Integrierte Analyse-Engine
 │   ├── presentation/        # UI-Module
 │   │   ├── cli.py           # Command-Line-Interface
 │   │   ├── tui.py           # Terminal-UI
 │   │   ├── live_tui.py      # Live-TUI
 │   │   └── reporting.py     # Report-Generierung
+│   ├── visualization/       # Visualisierungs-Module
+│   │   ├── wifi_visualizer.py # Basis-Visualisierer
+│   │   └── advanced_visualizer.py # Erweiterte 3D & Zeitverlaufs-Visualisierung
 │   ├── storage/             # Daten-Speicherung
 │   │   ├── database.py      # SQLite-Datenbank
 │   │   ├── state.py         # State-Management
@@ -138,6 +166,8 @@ hacking/
 │   ├── test_integration.py  # Integration-Tests
 │   ├── test_performance.py  # Performance-Tests
 │   └── test_error_handling.py # Error-Handling-Tests
+├── examples/                # Beispiel-Skripte
+│   └── enhanced_analysis_example.py # Erweiterte Analyse-Beispiele
 └── assets/                  # Statische Assets
     ├── sql_data/           # SQL-Migrationen
     ├── templates/          # HTML-Templates
@@ -154,6 +184,9 @@ hacking/
 # Mit Live-TUI
 --capture_mode --live-tui --iface wlan0mon
 
+# Erweiterte Capture mit DPI
+--capture_mode --enhanced-analysis --iface wlan0mon
+
 # PCAP-Export
 --pcap capture.pcap --duration 300
 ```
@@ -165,6 +198,9 @@ hacking/
 
 # ML-Klassifizierung
 --ml-classify --model device_classifier
+
+# Erweiterte Analyse
+--enhanced-analysis --3d-visualization --time-series-plots
 
 # Graph-Export
 --export-graph network.gexf --format gephi
@@ -181,6 +217,31 @@ hacking/
 # Modell-Evaluation
 --evaluate-model --model device_classifier
 ```
+
+### **Erweiterte Analyse**
+```bash
+# Erweiterte Analyse mit allen Features
+--enhanced-analysis
+
+# Deep Packet Inspection
+--deep-packet-inspection
+
+# Erweiterte Metriken
+--advanced-metrics
+
+# 3D-Visualisierung
+--3d-visualization
+
+# Zeitverlaufs-Diagramme
+--time-series-plots
+
+# Benutzerdefinierte Reports
+--custom-report
+```
+
+> 📖 **Vollständige Dokumentation**: 
+> - [COMMAND_LINE_ARGUMENTS.md](COMMAND_LINE_ARGUMENTS.md) - Alle Kommandozeilen-Argumente
+> - [NEW_FEATURES_v2.1.md](NEW_FEATURES_v2.1.md) - Neue Features in v2.1
 
 ## ⚙️ **Konfiguration**
 

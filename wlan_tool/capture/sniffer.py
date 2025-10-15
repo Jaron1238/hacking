@@ -21,6 +21,7 @@ from tqdm import tqdm
 from .. import config
 from ..storage import database
 from ..storage.data_models import WifiEvent
+from ..analysis.deep_packet_inspection import DeepPacketInspector
 
 logger = logging.getLogger(__name__)
 

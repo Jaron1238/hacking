@@ -13,6 +13,8 @@ import importlib.util
 # Importiere nur noch die notwendigen Teile für den Start
 from wlan_tool import utils, config, pre_run_checks
 from wlan_tool.controllers import CaptureController, AnalysisController
+from wlan_tool.analysis.enhanced_analysis import EnhancedAnalysisEngine
+from wlan_tool.capture.enhanced_sniffer import EnhancedWiFiSniffer
 from wlan_tool.storage import database, state
 from wlan_tool.storage.state import WifiAnalysisState
 from rich.console import Console
@@ -97,6 +99,14 @@ def parse_args():
     g_an.add_argument("--train-encoder", help="Trainiert einen Autoencoder für besseres Client-Clustering. Pfad zur Ausgabemodelldatei angeben (z.B. client_encoder.pth).")
     g_an.add_argument("--use-encoder", help="Verwendet einen trainierten Encoder für das Client-Clustering. Pfad zur Modelldatei angeben.")
     g_an.add_argument("--show-probed-ssids", action="store_true", help="Zeigt eine Rangliste der am häufigsten gesuchten SSIDs an.")
+    
+    # Erweiterte Analyse-Optionen
+    g_an.add_argument("--enhanced-analysis", action="store_true", help="Führt erweiterte Analyse mit DPI, Metriken und Visualisierung durch.")
+    g_an.add_argument("--deep-packet-inspection", action="store_true", help="Aktiviert Deep Packet Inspection für HTTP, DNS, DHCP Analyse.")
+    g_an.add_argument("--advanced-metrics", action="store_true", help="Berechnet erweiterte Metriken (SNR, PER, Traffic Patterns).")
+    g_an.add_argument("--3d-visualization", action="store_true", help="Erstellt 3D-Netzwerk-Visualisierung.")
+    g_an.add_argument("--time-series-plots", action="store_true", help="Erstellt detaillierte Zeitverlaufs-Diagramme.")
+    g_an.add_argument("--custom-report", action="store_true", help="Generiert benutzerdefinierten HTML-Report.")
     
     g_bh = p.add_argument_group("Behavioral Analysis Options")
     g_bh.add_argument("--train-behavior-model", help="Trainiert ein Modell zur Erkennung von Gerätetypen (z.B. iot, smartphone) anhand des Verhaltens. Benötigt einen Pfad zur Ausgabemodelldatei.")
@@ -195,12 +205,31 @@ def main():
             args.classify_client_behavior, args.train_encoder, args.html_report, 
             args.show_dns, args.show_network_map, args.run_plugins is not None, 
             args.export_graph, args.export_csv, args.label_ui, args.show_probed_ssids,
-            args.tui
+            args.tui, args.enhanced_analysis, args.deep_packet_inspection,
+            args.advanced_metrics, args.custom_report
         ]
         is_analysis_mode = any(analysis_actions)
         if is_capture_mode:
-            capture_controller = CaptureController(args, config_data, console)
-            capture_controller.run_capture()
+            # Prüfe ob erweiterte Analyse gewünscht ist
+            if args.enhanced_analysis or args.deep_packet_inspection or args.advanced_metrics:
+                console.print("[bold green]Starte erweiterte Capture mit DPI und Metriken...[/bold green]")
+                enhanced_sniffer = EnhancedWiFiSniffer(
+                    iface=args.iface or config_data.get("capture", {}).get("interface", "wlan0mon"),
+                    channels=config_data.get("channels", {}).get("to_hop", [1, 6, 11]),
+                    duration=args.duration or config_data.get("capture", {}).get("duration", 300),
+                    outdir=args.outdir or "enhanced_capture"
+                )
+                enhanced_sniffer.start_capture()
+                
+                # Erweiterte Analyse nach Capture
+                if args.enhanced_analysis:
+                    console.print("[cyan]Führe erweiterte Analyse durch...[/cyan]")
+                    report = enhanced_sniffer.generate_enhanced_report()
+                    enhanced_sniffer.save_enhanced_data(report)
+                    console.print(f"[green]Erweiterte Analyse abgeschlossen. Ergebnisse in: {enhanced_sniffer.outdir}[/green]")
+            else:
+                capture_controller = CaptureController(args, config_data, console)
+                capture_controller.run_capture()
 
         if is_analysis_mode:
             # KORREKTUR: Lade den Zustand VOR der Initialisierung des Controllers.
@@ -234,9 +263,45 @@ def main():
             
             console.print(f"[green]Zustand aufgebaut/aktualisiert: {len(state.aps)} APs, {len(state.clients)} Clients, {len(state.ssid_map)} SSIDs.[/green]")
             
-            # Initialisiere den Controller jetzt mit dem geladenen Zustand
-            analysis_controller = AnalysisController(args, config_data, console, plugins, state, new_events)
-            analysis_controller.run_analysis()
+            # Prüfe ob erweiterte Analyse gewünscht ist
+            if args.enhanced_analysis or args.deep_packet_inspection or args.advanced_metrics:
+                console.print("[bold green]Starte erweiterte Analyse-Engine...[/bold green]")
+                enhanced_engine = EnhancedAnalysisEngine(output_dir=str(outdir / "enhanced_analysis"))
+                
+                # WiFi-Events für erweiterte Analyse vorbereiten
+                wifi_events = []
+                for event in new_events:
+                    wifi_events.append({
+                        'ts': event.ts,
+                        'type': event.type,
+                        'client': getattr(event, 'client', None),
+                        'bssid': getattr(event, 'bssid', None),
+                        'rssi': getattr(event, 'rssi', None),
+                        'noise': getattr(event, 'noise', None),
+                        'channel': getattr(event, 'channel', None),
+                        'packet_size': getattr(event, 'packet_size', 0),
+                        'from_ds': getattr(event, 'from_ds', False),
+                        'dns_query': getattr(event, 'dns_query', None)
+                    })
+                
+                # PCAP-Datei für DPI (falls vorhanden)
+                pcap_file = outdir / "capture.pcap"
+                pcap_path = str(pcap_file) if pcap_file.exists() else None
+                
+                # Erweiterte Analyse durchführen
+                analysis_results = enhanced_engine.analyze_wifi_data(wifi_events, pcap_path)
+                enhanced_engine.save_analysis_results()
+                
+                # Zusammenfassung anzeigen
+                summary = enhanced_engine.get_analysis_summary()
+                console.print(f"[green]Erweiterte Analyse abgeschlossen:[/green]")
+                console.print(f"  - Geräte: {summary['total_devices']}")
+                console.print(f"  - Visualisierungen: {', '.join(summary['visualizations_created'])}")
+                console.print(f"  - Ergebnisse: {enhanced_engine.output_dir}")
+            else:
+                # Standard-Analyse
+                analysis_controller = AnalysisController(args, config_data, console, plugins, state, new_events)
+                analysis_controller.run_analysis()
         
         if not is_capture_mode and not is_analysis_mode:
             console.print("[yellow]Keine Aktion angegeben. Führen Sie '--help' für eine Liste der Optionen aus.[/yellow]")
