@@ -240,7 +240,7 @@ hacking/
 ```
 
 > 📖 **Vollständige Dokumentation**: 
-> - [COMMAND_LINE_ARGUMENTS.md](COMMAND_LINE_ARGUMENTS.md) - Alle Kommandozeilen-Argumente
+> - [COMMAND.md](command.md) - Alle Kommandozeilen-Argumente
 > - [NEW_FEATURES_v2.1.md](NEW_FEATURES_v2.1.md) - Neue Features in v2.1
 
 ## ⚙️ **Konfiguration**
