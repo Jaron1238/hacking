@@ -240,8 +240,8 @@ hacking/
 ```
 
 > 📖 **Vollständige Dokumentation**: 
-> - [COMMAND.md](command.md) - Alle Kommandozeilen-Argumente
-> - [NEW_FEATURES_v2.1.md](NEW_FEATURES_v2.1.md) - Neue Features in v2.1
+> - [Command_Arguments](command.md)
+    
 
 ## ⚙️ **Konfiguration**
 
