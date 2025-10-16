@@ -349,8 +349,10 @@ Aktiviert Speicher-Optimierungen für große Datensätze.
 
 ### **Schnelle Analyse**
 ```bash
-# Basis-Capture und Analyse
+# Basis-Capture
 sudo .venv/bin/python3 main.py --capture_mode --iface wlan0 --duration 300 --project quick_scan
+
+# Basis-Analyse
 .venv/bin/python3 main.py --project quick_scan --infer --cluster-clients 5 --tui
 ```
 
