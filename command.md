@@ -416,6 +416,7 @@ sudo .venv/bin/python3 main.py --capture_mode --iface wlan0 --debug --verbose --
 ### **Spezifische Hilfe**
 ```bash
 .venv/bin/python3 main.py --capture_mode --help
+
 .venv/bin/python3 main.py --analysis --help
 ```
 
