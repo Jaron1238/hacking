@@ -350,38 +350,38 @@ Aktiviert Speicher-Optimierungen für große Datensätze.
 ### **Schnelle Analyse**
 ```bash
 # Basis-Capture und Analyse
-sudo python main.py --capture_mode --iface wlan0 --duration 300 --project quick_scan
-python main.py --project quick_scan --infer --cluster-clients 5 --tui
+sudo .venv/bin/python3 main.py --capture_mode --iface wlan0 --duration 300 --project quick_scan
+.venv/bin/python3 main.py --project quick_scan --infer --cluster-clients 5 --tui
 ```
 
 ### **Erweiterte Analyse mit ML**
 ```bash
 # Capture mit erweiterten Features
-sudo python main.py --capture_mode --iface wlan0 --enhanced-analysis --project ml_scan
+sudo .venv/bin/python3 main.py --capture_mode --iface wlan0 --enhanced-analysis --project ml_scan
 
 # ML-Analyse
-python main.py --project ml_scan --auto-ml --classify-clients --3d-visualization
+.venv/bin/python3 main.py --project ml_scan --auto-ml --classify-clients --3d-visualization
 ```
 
 ### **Plugin-basierte Analyse**
 ```bash
 # Alle verfügbaren Plugins
-python main.py --project my_scan --run-plugins --html-report analysis.html
+.venv/bin/python3 main.py --project my_scan --run-plugins --html-report analysis.html
 
 # Spezifische Visualisierungen
-python main.py --project my_scan --run-plugins umap_plot sankey --export-graph network.gexf
+.venv/bin/python3 main.py --project my_scan --run-plugins umap_plot sankey --export-graph network.gexf
 ```
 
 ### **Professionelle Reports**
 ```bash
 # Umfassender Report mit allen Features
-python main.py --project my_scan --enhanced-analysis --custom-report --3d-visualization --time-series-plots
+.venv/bin/python3 main.py --project my_scan --enhanced-analysis --custom-report --3d-visualization --time-series-plots
 ```
 
 ### **Debugging und Entwicklung**
 ```bash
 # Debug-Modus mit detailliertem Logging
-sudo python main.py --capture_mode --iface wlan0 --debug --verbose --project debug_scan
+sudo .venv/bin/python3 main.py --capture_mode --iface wlan0 --debug --verbose --project debug_scan
 ```
 
 ---
@@ -408,18 +408,18 @@ sudo python main.py --capture_mode --iface wlan0 --debug --verbose --project deb
 
 ### **Hilfe anzeigen**
 ```bash
-python main.py --help
+.venv/bin/python3 main.py --help
 ```
 
 ### **Spezifische Hilfe**
 ```bash
-python main.py --capture_mode --help
-python main.py --analysis --help
+.venv/bin/python3 main.py --capture_mode --help
+.venv/bin/python3 main.py --analysis --help
 ```
 
 ### **Version anzeigen**
 ```bash
-python main.py --version
+.venv/bin/python3 main.py --version
 ```
 
 ---
