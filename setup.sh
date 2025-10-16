@@ -20,7 +20,7 @@ NC='\033[0m'
 echo -e "${GREEN}=================================================="
 echo "Sicheres Setup für WLAN Analysis Tool"
 echo "Ziel-Python-Version: $PYTHON_VERSION_WANTED"
-echo "==================================================${NC}"
+echo "=================================================="
 echo ""
 
 # --- Schritt 1: System-Update & Abhängigkeiten für pyenv ---
@@ -63,7 +63,7 @@ echo ""
 
 # --- Schritt 3: Gewünschte Python-Version installieren ---
 if [ "$PYTHON_VERSION_WANTED" == "LATEST" ]; then
-    echo -e "${YELLOW}Suche nach der neuesten stabilen Python-Version...${NC}"
+    echo -e "${YELLOW}Suche nach der neuesten stabilen Python-Version..."
     # Findet die letzte stabile Version (keine -rc oder -dev)
     PYTHON_VERSION_TO_INSTALL=$(pyenv install --list | grep -E "^\s*[0-9]+\.[0-9]+\.[0-9]+$" | tail -1 | tr -d ' ')
     echo "Neueste gefundene Version: $PYTHON_VERSION_TO_INSTALL"
@@ -71,7 +71,7 @@ else
     PYTHON_VERSION_TO_INSTALL=$PYTHON_VERSION_WANTED
 fi
 
-echo -e "${YELLOW}Schritt 3: Installiere Python $PYTHON_VERSION_TO_INSTALL mit pyenv...${NC}"
+echo -e "${YELLOW}Schritt 3: Installiere Python $PYTHON_VERSION_TO_INSTALL mit pyenv..."
 if pyenv versions --bare | grep -q "^$PYTHON_VERSION_TO_INSTALL$"; then
     echo "Python $PYTHON_VERSION_TO_INSTALL ist bereits installiert."
 else
@@ -83,7 +83,7 @@ echo ""
 
 # --- Schritt 4: Projekt für die neue Python-Version einrichten ---
 VENV_DIR="$PWD/.venv"
-echo -e "${YELLOW}Schritt 4: Richte das Projekt für Python $PYTHON_VERSION_TO_INSTALL ein...${NC}"
+echo -e "${YELLOW}Schritt 4: Richte das Projekt für Python $PYTHON_VERSION_TO_INSTALL ein..."
 
 # Legt die Python-Version für das aktuelle Verzeichnis fest
 pyenv local "$PYTHON_VERSION_TO_INSTALL"
