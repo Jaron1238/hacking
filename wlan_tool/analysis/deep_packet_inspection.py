@@ -17,11 +17,12 @@ from datetime import datetime
 from scapy.all import (
     IP, IPv6, TCP, UDP, 
     Raw, DNS, DNSQR, DNSRR,
-    DHCP, BOOTP, ARP,
-    HTTP, HTTPRequest, HTTPResponse
+    DHCP, BOOTP, ARP
 )
+from scapy.layers.http import HTTP, HTTPRequest, HTTPResponse  # <-- KORRIGIERT
 from scapy.layers.inet import IPField
 from scapy.layers.l2 import Ether
+
 
 logger = logging.getLogger(__name__)
 
