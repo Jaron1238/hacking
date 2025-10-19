@@ -10,7 +10,7 @@ build/
 *.egg
 .pytest_cache/
 .coverage
-htmlcov/
+
 
 # Virtual Environment
 .venv/
