@@ -110,20 +110,40 @@ class PluginManager:
         if not plugin:
             logger.error(f"Plugin '{plugin_name}' nicht gefunden.")
             return False
+        
+        # Prüfe Dependencies vor dem Test
+        if not plugin.validate_dependencies():
+            logger.warning(f"Plugin '{plugin_name}' hat fehlende Dependencies - Tests können fehlschlagen")
+        
         plugin_dir = self.plugin_dir / plugin_name
         tests_dir = plugin_dir / "tests"
         if not tests_dir.exists():
             logger.warning(f"Keine Tests für Plugin '{plugin_name}' gefunden.")
             return False
+        
         try:
-            cmd = [sys.executable, "-m", "pytest", str(tests_dir), "-v"]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            # Führe Tests mit besserer Fehlerbehandlung aus
+            cmd = [sys.executable, "-m", "pytest", str(tests_dir), "-v", "--tb=short"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            
             logger.info(f"Test-Ergebnisse für {plugin_name}:")
             logger.info(result.stdout)
+            
             if result.stderr:
                 logger.error("Fehler:")
                 logger.error(result.stderr)
-            return result.returncode == 0
+            
+            # Analysiere Test-Ergebnisse
+            if result.returncode == 0:
+                logger.info(f"✅ Alle Tests für {plugin_name} erfolgreich")
+                return True
+            else:
+                logger.error(f"❌ Tests für {plugin_name} fehlgeschlagen (Exit Code: {result.returncode})")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logger.error(f"⏰ Tests für {plugin_name} überschritten Zeitlimit (5 Minuten)")
+            return False
         except subprocess.SubprocessError as e:
             logger.error(f"Fehler beim Ausführen der Tests für {plugin_name}: {e}")
             return False
@@ -152,7 +172,7 @@ __all__ = [\'Plugin\']
 '
         (plugin_dir / "__init__.py").write_text(init_content)
 
-    def _create_plugin_py(self, plugin_dir: Path, plugin_name: str) -> None:
+    def _create_plugin_py(self, plugin_dir: Path, plugin_name: str, description: str = None, author: str = "Plugin Author", dependencies: list = None) -> None:
         plugin_content = f'"""
 {plugin_name.title()} Plugin.
 """
@@ -172,9 +192,9 @@ class Plugin(BasePlugin):
         return PluginMetadata(
             name="{plugin_name.title()}",
             version="1.0.0",
-            description="Beschreibung des {plugin_name} Plugins",
-            author="Dein Name",
-            dependencies=[]
+            description="{description or f'Beschreibung des {plugin_name} Plugins'}",
+            author="{author}",
+            dependencies={dependencies or []}
         )
 
     def run(self, state: Dict, events: list, console, outdir: Path, **kwargs):
@@ -239,26 +259,88 @@ class Test{plugin_name.title()}Plugin:
 '
         (tests_dir / f"test_{plugin_name}.py").write_text(test_content)
 
-    def _create_requirements(self, plugin_dir: Path) -> None:
-        (plugin_dir / "requirements.txt").write_text(
-            "# Dependencies für das Plugin\n# Füge hier deine Dependencies hinzu\n"
-        )
+    def _create_requirements(self, plugin_dir: Path, dependencies: list = None) -> None:
+        if dependencies:
+            req_content = "# Dependencies für das Plugin\n" + "\n".join(dependencies) + "\n"
+        else:
+            req_content = "# Dependencies für das Plugin\n# Füge hier deine Dependencies hinzu\n# Beispiel:\n# numpy\n# pandas\n# matplotlib\n"
+        (plugin_dir / "requirements.txt").write_text(req_content)
+    
+    def _create_readme(self, plugin_dir: Path, plugin_name: str, description: str = None) -> None:
+        readme_content = f"""# {plugin_name.title()} Plugin
 
-    def create_plugin_template(self, plugin_name: str) -> bool:
+{description or f'Ein Plugin für das WLAN-Analyse-Tool'}
+
+## Installation
+
+1. Installiere die Dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Das Plugin wird automatisch vom Plugin Manager erkannt.
+
+## Verwendung
+
+Das Plugin wird automatisch ausgeführt, wenn es in der Plugin-Liste aktiviert ist.
+
+## Entwicklung
+
+### Tests ausführen
+
+```bash
+python -m pytest tests/ -v
+```
+
+### Plugin testen
+
+```bash
+python scripts/plugin_manager.py test {plugin_name}
+```
+
+## Struktur
+
+- `plugin.py` - Haupt-Plugin-Implementierung
+- `tests/` - Unit Tests
+- `requirements.txt` - Python Dependencies
+- `__init__.py` - Plugin-Initialisierung
+"""
+        (plugin_dir / "README.md").write_text(readme_content)
+
+    def create_plugin_template(self, plugin_name: str, description: str = None, author: str = "Plugin Author", dependencies: list = None) -> bool:
         """Erstellt ein Template für ein neues Plugin."""
         plugin_dir = self.plugin_dir / plugin_name
         tests_dir = plugin_dir / "tests"
+        
         if plugin_dir.exists():
             logger.error(f"Plugin-Verzeichnis '{plugin_name}' existiert bereits.")
             return False
+        
+        if not plugin_name.replace("_", "").replace("-", "").isalnum():
+            logger.error(f"Plugin-Name '{plugin_name}' enthält ungültige Zeichen. Verwende nur Buchstaben, Zahlen, _ und -")
+            return False
+        
         try:
             plugin_dir.mkdir(parents=True, exist_ok=True)
             tests_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Erstelle Plugin-Dateien
             self._create_init_py(plugin_dir, plugin_name)
-            self._create_plugin_py(plugin_dir, plugin_name)
+            self._create_plugin_py(plugin_dir, plugin_name, description, author, dependencies)
             self._create_tests(tests_dir, plugin_name)
-            self._create_requirements(plugin_dir)
-            logger.info(f"Plugin-Template für '{plugin_name}' erstellt in: {plugin_dir}")
+            self._create_requirements(plugin_dir, dependencies)
+            
+            # Erstelle README
+            self._create_readme(plugin_dir, plugin_name, description)
+            
+            logger.info(f"✅ Plugin-Template für '{plugin_name}' erstellt in: {plugin_dir}")
+            logger.info(f"📁 Plugin-Verzeichnis: {plugin_dir}")
+            logger.info(f"🧪 Test-Verzeichnis: {tests_dir}")
+            logger.info(f"📋 Nächste Schritte:")
+            logger.info(f"   1. Bearbeite {plugin_dir}/plugin.py")
+            logger.info(f"   2. Füge Dependencies zu {plugin_dir}/requirements.txt hinzu")
+            logger.info(f"   3. Führe Tests aus: python -m pytest {tests_dir}")
+            
             return True
         except OSError as e:
             logger.error(f"Fehler beim Erstellen des Plugin-Templates: {e}")
