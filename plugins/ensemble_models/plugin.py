@@ -371,6 +371,12 @@ class Plugin(BasePlugin):
                                        outdir: Path) -> None:
         """Erstellt Visualisierungen für die Modell-Performance."""
         try:
+            # Überprüfe, ob Plotly verfügbar ist
+            try:
+                from plotly.subplots import make_subplots
+            except ImportError:
+                logger.warning("Plotly nicht verfügbar. Überspringe Performance-Visualisierung.")
+                return
             # DataFrame für Plotly
             df = pd.DataFrame([
                 {

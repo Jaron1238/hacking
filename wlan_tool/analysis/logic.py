@@ -663,7 +663,7 @@ def profile_clusters(feature_df: pd.DataFrame, clustered_df: pd.DataFrame) -> Di
             if key in global_means and global_means[key] != 0:
                 deviation = (value / global_means[key] - 1) * 100
                 relative_profile[f"{key}_rel_diff_pct"] = deviation
-        profiles["details"] = full_df.set_index("mac").to_dict(orient="index")
+        # Diese Zeile wird später überschrieben, daher entfernen wir sie hier
 
         profile["relative_deviations"] = relative_profile
         global_means = full_df[full_df["cluster"] != -1].mean(numeric_only=True)
@@ -671,9 +671,13 @@ def profile_clusters(feature_df: pd.DataFrame, clustered_df: pd.DataFrame) -> Di
             full_df[full_df["cluster"] != -1].std(numeric_only=True).replace(0, 1)
         )
 
-        z_scores = (pd.Series(profile) - global_means) / std_devs
-
-        profile["top_features"] = z_scores.nlargest(3).index.tolist()
+        # Nur numerische Features für z_scores verwenden
+        numeric_profile = {k: v for k, v in profile.items() if isinstance(v, (int, float)) and not pd.isna(v)}
+        if numeric_profile:
+            z_scores = (pd.Series(numeric_profile) - global_means) / std_devs
+            profile["top_features"] = z_scores.nlargest(3).index.tolist()
+        else:
+            profile["top_features"] = []
         profiles[cluster_id] = profile
     profiles["details"] = full_df.set_index("original_macs").to_dict(orient="index")
 
@@ -732,6 +736,12 @@ def cluster_aps(
     if n_clusters == 0:
         optimal_k = find_optimal_k_elbow_and_silhouette(X_scaled)
         n_clusters = optimal_k or 5
+    
+    # Überprüfe, ob genügend Samples vorhanden sind
+    if len(X_scaled) < n_clusters:
+        logger.warning(f"Nicht genügend APs für {n_clusters} Cluster. Verwende {len(X_scaled)} Cluster.")
+        n_clusters = len(X_scaled)
+    
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
     df["cluster"] = kmeans.fit_predict(X_scaled)
     return df
@@ -763,8 +773,8 @@ def profile_ap_clusters(clustered_ap_df: pd.DataFrame) -> Dict:
         profile = {
             "count": len(cluster_data),
             "vendors": cluster_data["vendor"].value_counts().to_dict(),
-            "channels": cluster_data["channel"].value_counts().to_dict(),
-            "avg_rssi": cluster_data["rssi_mean"].mean(),
+            "channels": cluster_data["channel"].value_counts().to_dict() if "channel" in cluster_data.columns else {},
+            "avg_rssi": cluster_data["rssi_mean"].mean() if "rssi_mean" in cluster_data.columns else 0,
             "enterprise_auth_pct": (
                 cluster_data["is_enterprise_auth"].mean() * 100
                 if "is_enterprise_auth" in cluster_data
@@ -816,6 +826,8 @@ def _build_export_graph(
     G = nx.Graph()
     G.graph["mode"] = "dynamic"
     G.graph["timeformat"] = "datetime"
+    G.graph["start"] = "2024-01-01T00:00:00"
+    G.graph["end"] = "2024-12-31T23:59:59"
 
     for _, row in clustered_ap_df.iterrows():
         bssid_str = str(row["bssid"])
@@ -932,7 +944,7 @@ def _discover_attributes(G: nx.Graph) -> tuple[dict, dict]:
             if (
                 k not in edge_attrs
                 and v is not None
-                and k not in ["weight", "start", "end", "kind"]
+                and k not in ["start", "end", "kind"]
             ):
                 edge_attrs[k] = type_map.get(type(v), "string")
     return node_attrs, edge_attrs

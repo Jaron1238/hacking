@@ -7,6 +7,7 @@ Tests für das Analysis-Modul (logic.py, device_profiler.py, models.py, training
 import pytest
 import numpy as np
 import pandas as pd
+import time
 from unittest.mock import MagicMock, patch
 from collections import defaultdict
 
