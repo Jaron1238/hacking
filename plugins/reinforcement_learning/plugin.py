@@ -221,8 +221,14 @@ class Plugin(BasePlugin):
                     low=0, high=1, shape=(10,), dtype=np.float32
                 )
             else:
-                self.action_space = None
-                self.observation_space = None
+                # Fallback für den Fall, dass gym nicht verfügbar ist
+                class MockSpace:
+                    def __init__(self, n=None, shape=None):
+                        self.n = n
+                        self.shape = shape
+                
+                self.action_space = MockSpace(n=len(ActionType))
+                self.observation_space = MockSpace(shape=(10,))
             
             # Performance-Tracking
             self.performance_metrics = {

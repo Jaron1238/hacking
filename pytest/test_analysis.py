@@ -7,6 +7,7 @@ Tests für das Analysis-Modul (logic.py, device_profiler.py, models.py, training
 import pytest
 import numpy as np
 import pandas as pd
+import time
 from unittest.mock import MagicMock, patch
 from collections import defaultdict
 
@@ -18,6 +19,7 @@ from wlan_tool.analysis.device_profiler import (
     correlate_devices_by_fingerprint
 )
 from wlan_tool.storage.state import WifiAnalysisState, ClientState, APState
+from wlan_tool.storage.data_models import Welford
 from wlan_tool.storage.data_models import InferenceResult
 
 

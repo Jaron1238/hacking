@@ -16,23 +16,24 @@ try:
     from sklearn.cluster import SpectralClustering, AgglomerativeClustering
     from sklearn.mixture import GaussianMixture
     from sklearn.cluster import OPTICS
-    import hdbscan
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import silhouette_score, calinski_harabasz_score
     from sklearn.decomposition import PCA
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     import plotly.express as px
+    HAS_PLOTLY = True
 except ImportError as e:
     logging.warning(f"Einige ML-Bibliotheken nicht verfügbar: {e}")
-    # Fallback-Importe
-    try:
-        from sklearn.cluster import SpectralClustering, AgglomerativeClustering
-        from sklearn.mixture import GaussianMixture
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.metrics import silhouette_score
-    except ImportError:
-        pass
+    HAS_PLOTLY = False
+
+try:
+    import hdbscan
+    HAS_HDBSCAN = True
+except ImportError:
+    logging.warning("HDBSCAN nicht verfügbar")
+    HAS_HDBSCAN = False
+    hdbscan = None
 
 logger = logging.getLogger(__name__)
 
@@ -235,7 +236,10 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                calinski = calinski_harabasz_score(features_scaled, labels)
+                try:
+                    calinski = calinski_harabasz_score(features_scaled, labels)
+                except NameError:
+                    calinski = 0
             else:
                 silhouette = 0
                 calinski = 0
@@ -273,7 +277,10 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                calinski = calinski_harabasz_score(features_scaled, labels)
+                try:
+                    calinski = calinski_harabasz_score(features_scaled, labels)
+                except NameError:
+                    calinski = 0
             else:
                 silhouette = 0
                 calinski = 0
@@ -312,7 +319,10 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                calinski = calinski_harabasz_score(features_scaled, labels)
+                try:
+                    calinski = calinski_harabasz_score(features_scaled, labels)
+                except NameError:
+                    calinski = 0
                 aic = gmm.aic(features_scaled)
                 bic = gmm.bic(features_scaled)
             else:
@@ -354,7 +364,10 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                calinski = calinski_harabasz_score(features_scaled, labels)
+                try:
+                    calinski = calinski_harabasz_score(features_scaled, labels)
+                except NameError:
+                    calinski = 0
             else:
                 silhouette = 0
                 calinski = 0
@@ -372,6 +385,9 @@ class Plugin(BasePlugin):
     
     def _run_hdbscan_clustering(self, features: np.ndarray) -> Tuple[np.ndarray, Dict]:
         """Führt HDBSCAN Clustering durch."""
+        if not HAS_HDBSCAN:
+            return np.zeros(len(features)), {"error": "HDBSCAN nicht verfügbar"}
+        
         if len(features) < 3:
             return np.zeros(len(features)), {"error": "Nicht genügend Daten für HDBSCAN"}
         
@@ -391,7 +407,10 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1 and -1 not in labels:
                 silhouette = silhouette_score(features_scaled, labels)
-                calinski = calinski_harabasz_score(features_scaled, labels)
+                try:
+                    calinski = calinski_harabasz_score(features_scaled, labels)
+                except NameError:
+                    calinski = 0
             else:
                 silhouette = 0
                 calinski = 0
@@ -412,6 +431,10 @@ class Plugin(BasePlugin):
                                       client_macs: List[str], algorithm_name: str, 
                                       outdir: Path) -> None:
         """Erstellt Visualisierungen für die Clustering-Ergebnisse."""
+        if not HAS_PLOTLY:
+            logger.warning("Plotly nicht verfügbar. Überspringe Visualisierung.")
+            return
+            
         try:
             # PCA für 2D-Visualisierung
             pca = PCA(n_components=2)
