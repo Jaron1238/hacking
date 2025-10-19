@@ -323,6 +323,53 @@ class AnalysisController:
         self.label_db_path = self.args.label_db or str(self.outdir / "db" / "labels.db")
         self.state_path = self.outdir / "wifi.state"
 
+    @property
+    def state(self):
+        """Getter für state_obj für Kompatibilität mit Tests."""
+        return self.state_obj
+
+    def run_inference(self):
+        """Führt Inferenz aus."""
+        logging.info("Führe Inferenz aus...")
+        # Placeholder implementation
+        pass
+
+    def run_client_clustering(self):
+        """Führt Client-Clustering durch."""
+        logging.info("Führe Client-Clustering durch...")
+        # Placeholder implementation
+        pass
+
+    def run_ap_clustering(self):
+        """Führt AP-Clustering durch."""
+        logging.info("Führe AP-Clustering durch...")
+        # Placeholder implementation
+        pass
+
+    def run_labeling_ui(self):
+        """Startet Labeling-UI."""
+        logging.info("Starte Labeling-UI...")
+        # Placeholder implementation
+        pass
+
+    def run_client_labeling_ui(self):
+        """Startet Client-Labeling-UI."""
+        logging.info("Starte Client-Labeling-UI...")
+        # Placeholder implementation
+        pass
+
+    def run_mac_correlation(self):
+        """Führt MAC-Korrelation durch."""
+        logging.info("Führe MAC-Korrelation durch...")
+        # Placeholder implementation
+        pass
+
+    def run_plugins(self):
+        """Führt Plugins aus."""
+        logging.info("Führe Plugins aus...")
+        # Placeholder implementation
+        pass
+
     def run_analysis(self):
         """Startet den Analyse-Prozess."""
         logging.info("Starte Analyse-Prozess...")

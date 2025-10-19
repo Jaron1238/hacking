@@ -42,6 +42,9 @@ class TestCaptureController:
         with patch('rich.prompt.Prompt.ask', return_value="wlan0"):
             iface = controller._select_interface()
             assert iface == "wlan0"
+        
+        # Überprüfe, dass die Console-Ausgabe korrekt ist
+        mock_console.print.assert_called()
     
     @patch('wlan_tool.pre_run_checks.find_wlan_interfaces')
     def test_select_interface_no_interfaces(self, mock_find_interfaces, mock_console):
@@ -56,6 +59,9 @@ class TestCaptureController:
         
         iface = controller._select_interface()
         assert iface is None
+        
+        # Überprüfe, dass die Console-Ausgabe korrekt ist
+        mock_console.print.assert_called()
     
     def test_select_interface_specified(self, mock_console):
         """Test Interface-Auswahl mit spezifiziertem Interface."""
@@ -96,6 +102,9 @@ class TestCaptureController:
         monitor_iface = controller._setup_monitor_mode("wlan0")
         
         assert monitor_iface is None
+        
+        # Überprüfe, dass die Console-Ausgabe korrekt ist
+        mock_console.print.assert_called()
     
     @patch('wlan_tool.capture.sniffer.sniff_with_writer')
     def test_run_capture_normal(self, mock_sniff, mock_console):
@@ -200,6 +209,10 @@ class TestAnalysisController:
         assert controller.plugins == plugins
         assert controller.state == populated_state
         assert controller.new_events == new_events
+        
+        # Überprüfe, dass der Controller korrekt initialisiert wurde
+        assert hasattr(controller, 'state_obj')
+        assert controller.state_obj == populated_state
     
     @patch('wlan_tool.analysis.logic.score_pairs_with_recency_and_matching')
     def test_run_inference(self, mock_score, mock_console, populated_state):
@@ -435,6 +448,10 @@ class TestControllerEdgeCases:
         controller.run_plugins()
         
         mock_plugin.run.assert_called_once()
+        
+        # Überprüfe, dass der Controller korrekt initialisiert wurde
+        assert hasattr(controller, 'state_obj')
+        assert controller.state_obj == populated_state
 
 
 class TestControllerIntegration:
@@ -496,3 +513,7 @@ class TestControllerIntegration:
         
         # Sollte alle Methoden aufgerufen haben
         assert True  # Wenn wir hier ankommen, ist der Test erfolgreich
+        
+        # Überprüfe, dass der Controller korrekt initialisiert wurde
+        assert hasattr(controller, 'state_obj')
+        assert controller.state_obj == populated_state

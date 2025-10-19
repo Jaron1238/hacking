@@ -196,7 +196,10 @@ class TestWifiAnalysisState:
         state = populated_state
         assert 'DE:AD:BE:EF:00:00' in state.clients
         
-        pruned_count = state.prune_state(time.time(), threshold_s=7200)
+        # Verwende einen Timestamp, der sicherstellt, dass der alte Client entfernt wird
+        # aber der neue Client bleibt
+        current_time = max(client.last_seen for client in state.clients.values()) + 1000
+        pruned_count = state.prune_state(current_time, threshold_s=7200)
         
         assert pruned_count > 0
         assert 'DE:AD:BE:EF:00:00' not in state.clients

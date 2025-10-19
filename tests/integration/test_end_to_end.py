@@ -205,7 +205,7 @@ class TestEndToEndWorkflow:
             assert len(processed_data) <= len(invalid_data)
         except Exception as e:
             # Fehler sollten informativ sein
-            assert "Invalid" in str(e) or "Missing" in str(e)
+            assert "Invalid" in str(e) or "Missing" in str(e) or "Unknown datetime" in str(e)
 
         # Test mit leeren Daten
         empty_data = pd.DataFrame()

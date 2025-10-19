@@ -34,7 +34,10 @@ from scapy.layers.l2 import ARP, LLC, SNAP
 
 def _extract_seq(dot11) -> Optional[int]:
     try:
-        return int(getattr(dot11, "SC", 0)) >> 4
+        sc = getattr(dot11, "SC", 0)
+        if sc is None:
+            return None
+        return int(sc) >> 4
     except (TypeError, ValueError):
         return None
 
