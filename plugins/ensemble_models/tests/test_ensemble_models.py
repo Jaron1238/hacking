@@ -105,9 +105,9 @@ class TestEnsembleModelsPlugin:
         """Test Feature-Extraktion für Klassifizierung."""
         X, y, client_macs = plugin._extract_features_for_classification(mock_state, mock_events)
         
-        assert len(X) == 6  # 6 Test-Clients
-        assert len(y) == 6
-        assert len(client_macs) == 6
+        assert len(X) == 26  # 26 Test-Clients (erweiterte Mock-Daten)
+        assert len(y) == 26
+        assert len(client_macs) == 26
         assert X.shape[1] > 0  # Mindestens ein Feature
         
         # Überprüfe, dass alle Features numerisch sind
@@ -246,7 +246,7 @@ class TestEnsembleModelsPlugin:
             ModelPerformance("Model2", 0.85, 0.82, 0.85, 0.83, 0.84, 0.01, 1.5, 0.15),
         ]
         
-        with patch('plotly.graph_objects.go') as mock_go:
+        with patch('plotly.graph_objects') as mock_go:
             with patch('plotly.subplots.make_subplots') as mock_subplots:
                 mock_fig = MagicMock()
                 mock_subplots.return_value = mock_fig

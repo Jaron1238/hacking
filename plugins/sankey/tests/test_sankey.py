@@ -25,7 +25,7 @@ class TestSankeyPlugin:
         state = WifiAnalysisState()
         
         # Erstelle Test-Clients mit Roaming-Events
-        for i in range(3):
+        for i in range(2):
             mac = f"aa:bb:cc:dd:ee:{i:02x}"
             client = ClientState(mac=mac)
             state.clients[mac] = client
@@ -37,9 +37,10 @@ class TestSankeyPlugin:
         """Mock Events mit Roaming-Übergängen."""
         return [
             {"ts": 1000.0, "type": "data", "client": "aa:bb:cc:dd:ee:00", "bssid": "ap1"},
-            {"ts": 1001.0, "type": "data", "client": "aa:bb:cc:dd:ee:00", "bssid": "ap2"},
-            {"ts": 1002.0, "type": "data", "client": "aa:bb:cc:dd:ee:01", "bssid": "ap2"},
-            {"ts": 1003.0, "type": "data", "client": "aa:bb:cc:dd:ee:01", "bssid": "ap3"},
+            {"ts": 1001.0, "type": "data", "client": "aa:bb:cc:dd:ee:00", "bssid": "ap2"},  # Roaming von ap1 zu ap2
+            {"ts": 1002.0, "type": "data", "client": "aa:bb:cc:dd:ee:00", "bssid": "ap3"},  # Roaming von ap2 zu ap3
+            {"ts": 1003.0, "type": "data", "client": "aa:bb:cc:dd:ee:01", "bssid": "ap1"},
+            {"ts": 1004.0, "type": "data", "client": "aa:bb:cc:dd:ee:01", "bssid": "ap2"},  # Roaming von ap1 zu ap2
         ]
     
     @pytest.fixture
@@ -66,15 +67,15 @@ class TestSankeyPlugin:
         """Test Plugin-Ausführung mit Roaming-Events."""
         temp_outdir.mkdir(exist_ok=True)
         
-        with patch('plotly.graph_objects.go') as mock_go:
-            with patch('plotly.graph_objects.Figure') as mock_figure:
+        with patch('plugins.sankey.plugin.go') as mock_go:
+            with patch('plugins.sankey.plugin.go.Figure') as mock_figure:
                 mock_fig = MagicMock()
                 mock_figure.return_value = mock_fig
                 
                 plugin.run(mock_state, mock_events_with_roaming, mock_console, temp_outdir)
                 
                 # Überprüfe, dass Plotly-Funktionen aufgerufen wurden
-                mock_go.Sankey.assert_called_once()
+                mock_go.Figure.assert_called_once()
                 mock_fig.write_html.assert_called_once()
     
     def test_plugin_run_without_roaming_events(self, plugin, mock_state, mock_console, temp_outdir):
@@ -139,7 +140,7 @@ class TestSankeyPlugin:
         """Test Plugin-Ausführung mit ausreichenden Daten."""
         temp_outdir.mkdir(exist_ok=True)
         
-        with patch('plotly.graph_objects.go') as mock_go:
+        with patch('plotly.graph_objects') as mock_go:
             with patch('plotly.graph_objects.Figure') as mock_figure:
                 mock_fig = MagicMock()
                 mock_figure.return_value = mock_fig

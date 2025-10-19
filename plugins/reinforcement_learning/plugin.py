@@ -10,6 +10,7 @@ import pandas as pd
 from collections import defaultdict, deque
 import json
 import time
+import joblib
 from dataclasses import dataclass
 from enum import Enum
 
@@ -214,10 +215,14 @@ class Plugin(BasePlugin):
             self.scan_history = deque(maxlen=100)
             
             # Action und Observation Spaces
-            self.action_space = spaces.Discrete(len(ActionType)) if gym else None
-            self.observation_space = spaces.Box(
-                low=0, high=1, shape=(10,), dtype=np.float32
-            ) if gym else None
+            if gym:
+                self.action_space = spaces.Discrete(len(ActionType))
+                self.observation_space = spaces.Box(
+                    low=0, high=1, shape=(10,), dtype=np.float32
+                )
+            else:
+                self.action_space = None
+                self.observation_space = None
             
             # Performance-Tracking
             self.performance_metrics = {
@@ -336,8 +341,9 @@ class Plugin(BasePlugin):
                 reward += clients_found * 0.05  # 0.05 Punkte pro Client
                 
                 # Bonus für neue Kanäle
-                if new_channel not in [ch for ch in self.scan_history[:-1]]:
-                    reward += 0.2
+                if hasattr(self, 'scan_history') and isinstance(self.scan_history, list) and len(self.scan_history) > 1:
+                    if new_channel not in self.scan_history[:-1]:
+                        reward += 0.2
                 
                 # Update Performance Metrics
                 self.performance_metrics['total_aps_found'] += aps_found
@@ -433,7 +439,7 @@ class Plugin(BasePlugin):
             
             # Epsilon Decay
             if self.epsilon > self.epsilon_min:
-                self.epsilon *= self.epsilon_decay
+                self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         
         def save(self, filepath: Path):
             """Speichert das gelernte Modell."""
@@ -509,4 +515,4 @@ class Plugin(BasePlugin):
             
             # Epsilon Decay
             if self.epsilon > self.epsilon_min:
-                self.epsilon *= self.epsilon_decay
+                self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)

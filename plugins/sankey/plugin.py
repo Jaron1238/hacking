@@ -93,7 +93,7 @@ class Plugin(BasePlugin):
 
             fig.update_layout(title_text="Client-Roaming-Flüsse zwischen Access Points", font_size=12)
             
-            output_file = outdir / "roaming_sankey.html"
+            output_file = Path(outdir) / "roaming_sankey.html"
             fig.write_html(str(output_file))
             
             console.print(f"[green]Roaming-Sankey-Diagramm erfolgreich gespeichert in: {output_file}[/green]")

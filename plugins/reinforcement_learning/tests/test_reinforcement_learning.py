@@ -304,6 +304,7 @@ class TestReinforcementLearningPlugin:
             agent.learn(state, action, reward, next_state, done)
         
         # Speichere Agent
+        temp_outdir.mkdir(exist_ok=True)
         agent_file = temp_outdir / "test_agent.joblib"
         agent.save(agent_file)
         
