@@ -19,6 +19,7 @@ from wlan_tool.analysis.device_profiler import (
     correlate_devices_by_fingerprint
 )
 from wlan_tool.storage.state import WifiAnalysisState, ClientState, APState
+from wlan_tool.storage.data_models import Welford
 from wlan_tool.storage.data_models import InferenceResult
 
 

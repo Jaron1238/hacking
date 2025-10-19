@@ -89,7 +89,7 @@ class WifiAnalysisState:
         if bssid and bssid not in self.aps:
             self.aps[bssid] = APState(bssid=bssid, first_seen=ts)
 
-        if ev_type in ("beacon", "probe_resp"):
+        if ev_type in ("beacon", "probe_resp") and bssid:
             ap = self.aps[bssid]
             ap.last_seen, ap.count = ts, ap.count + 1
             ap.rssi_w.update(ev.get("rssi"))

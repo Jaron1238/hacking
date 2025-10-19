@@ -53,8 +53,8 @@ def create_device_fingerprint(client_state) -> str:
     has_data = (
         client_state.ie_order_hashes or 
         len(client_state.all_packet_ts) > 0 or
-        client_state.ssid_requests or
-        client_state.bssid_requests
+        hasattr(client_state, 'ssid_requests') and client_state.ssid_requests or
+        hasattr(client_state, 'bssid_requests') and client_state.bssid_requests
     )
     
     if not has_data:

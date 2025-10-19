@@ -944,7 +944,7 @@ def _discover_attributes(G: nx.Graph) -> tuple[dict, dict]:
             if (
                 k not in edge_attrs
                 and v is not None
-                and k not in ["start", "end", "kind"]
+                and k not in ["start", "end"]
             ):
                 edge_attrs[k] = type_map.get(type(v), "string")
     return node_attrs, edge_attrs
