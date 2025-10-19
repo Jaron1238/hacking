@@ -171,6 +171,9 @@ class Plugin(BasePlugin):
         
         for episode in range(episodes):
             state = environment.reset()
+            if state is None:
+                logger.warning(f"Environment reset returned None in episode {episode}")
+                continue
             total_reward = 0
             steps = 0
             

@@ -56,13 +56,24 @@ class BasePlugin:
         missing_deps = []
         for dep in self.metadata.dependencies:
             try:
-                # Spezielle Behandlung für sklearn
+                # Spezielle Behandlung für verschiedene Pakete
                 if dep == "sklearn":
                     __import__("sklearn")
+                elif dep == "plotly":
+                    __import__("plotly")
+                elif dep == "hdbscan":
+                    __import__("hdbscan")
+                elif dep == "torch":
+                    __import__("torch")
+                elif dep == "umap":
+                    __import__("umap")
                 else:
                     __import__(dep)
-            except ImportError:
-                missing_deps.append(dep)
+            except ImportError as e:
+                missing_deps.append(f"{dep} ({e})")
+            except Exception as e:
+                logger.warning(f"Unerwarteter Fehler beim Importieren von {dep}: {e}")
+                missing_deps.append(f"{dep} (unexpected error)")
         
         if missing_deps:
             logger.warning(f"Dependencies {missing_deps} für Plugin '{self.metadata.name}' nicht verfügbar")
@@ -94,8 +105,10 @@ def load_plugin_from_directory(plugin_dir: Path) -> Optional[BasePlugin]:
             if plugin_instance.validate_dependencies():
                 return plugin_instance
             else:
-                logger.warning(f"Plugin {plugin_dir.name} hat fehlende Dependencies")
-                return None
+                logger.warning(f"Plugin {plugin_dir.name} hat fehlende Dependencies - wird trotzdem geladen")
+                # Lade Plugin auch mit fehlenden Dependencies, aber markiere es
+                plugin_instance._has_missing_deps = True
+                return plugin_instance
         else:
             logger.warning(f"Keine Plugin-Klasse in {plugin_file} gefunden")
             return None

@@ -46,14 +46,22 @@ class PluginManager:
 
         for name, plugin in self.plugins.items():
             metadata = plugin.get_metadata()
+            is_available = plugin.validate_dependencies()
+            has_missing_deps = getattr(plugin, '_has_missing_deps', False)
+            
             logger.info(f"Name: {metadata.name}")
             logger.info(f"  Version: {metadata.version}")
             logger.info(f"  Beschreibung: {metadata.description}")
             logger.info(f"  Autor: {metadata.author}")
             logger.info(f"  Dependencies: {', '.join(metadata.dependencies)}")
-            logger.info(
-                f"  Verfügbar: {'Ja' if plugin.validate_dependencies() else 'Nein (Dependencies fehlen)'}"
-            )
+            
+            if is_available:
+                logger.info("  Status: ✅ Verfügbar")
+            elif has_missing_deps:
+                logger.info("  Status: ⚠️  Geladen mit fehlenden Dependencies")
+            else:
+                logger.info("  Status: ❌ Nicht verfügbar (Dependencies fehlen)")
+            
             logger.info("")
 
     def install_dependencies(self, plugin_name: Optional[str] = None) -> bool:
@@ -265,14 +273,42 @@ class Test{plugin_name.title()}Plugin:
         if not plugin:
             return None
         metadata = plugin.get_metadata()
+        is_available = plugin.validate_dependencies()
+        has_missing_deps = getattr(plugin, '_has_missing_deps', False)
+        
         return {
             "name": metadata.name,
             "version": metadata.version,
             "description": metadata.description,
             "author": metadata.author,
             "dependencies": metadata.dependencies,
-            "dependencies_available": plugin.validate_dependencies(),
+            "dependencies_available": is_available,
+            "has_missing_deps": has_missing_deps,
+            "status": "available" if is_available else "missing_deps" if has_missing_deps else "unavailable",
             "plugin_dir": str(self.plugin_dir / plugin_name),
         }
+    
+    def health_check(self) -> Dict[str, Any]:
+        """Führt eine umfassende Gesundheitsprüfung aller Plugins durch."""
+        results = {
+            "total_plugins": len(self.plugins),
+            "available_plugins": 0,
+            "plugins_with_missing_deps": 0,
+            "unavailable_plugins": 0,
+            "plugin_details": {}
+        }
+        
+        for name, plugin in self.plugins.items():
+            info = self.get_plugin_info(name)
+            results["plugin_details"][name] = info
+            
+            if info["status"] == "available":
+                results["available_plugins"] += 1
+            elif info["status"] == "missing_deps":
+                results["plugins_with_missing_deps"] += 1
+            else:
+                results["unavailable_plugins"] += 1
+        
+        return results
 
 # ...Main-Funktion bleibt unverändert...

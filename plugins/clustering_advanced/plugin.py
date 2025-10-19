@@ -373,7 +373,7 @@ class Plugin(BasePlugin):
     
     def _run_hdbscan_clustering(self, features: np.ndarray) -> Tuple[np.ndarray, Dict]:
         """Führt HDBSCAN Clustering durch."""
-        if not HAS_HDBSCAN:
+        if not HAS_HDBSCAN or hdbscan is None:
             return np.zeros(len(features)), {"error": "HDBSCAN nicht verfügbar"}
         
         if len(features) < 3:
