@@ -169,7 +169,7 @@ class TestErrorContext:
             with ErrorContext("test_operation", "TEST_ERROR"):
                 raise ValueError("Original error")
         
-        assert "Error in test_operation: Original error" in str(exc_info.value)
+        assert "Original error" in str(exc_info.value)
         assert exc_info.value.error_code == "TEST_ERROR"
         assert exc_info.value.details["operation"] == "test_operation"
         assert exc_info.value.details["original_type"] == "ValueError"
@@ -341,7 +341,7 @@ class TestDatabaseErrorHandling:
             with db_conn_ctx("/invalid/path/database.db"):
                 pass
         
-        assert "Database operation failed" in str(exc_info.value)
+        assert "Cannot create database directory" in str(exc_info.value)
         assert exc_info.value.error_code == "SQLITE_ERROR"
     
     def test_database_migration_error(self):

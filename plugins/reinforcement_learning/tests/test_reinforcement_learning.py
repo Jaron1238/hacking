@@ -25,10 +25,12 @@ class TestReinforcementLearningPlugin:
         """Mock State mit Test-Clients."""
         state = WifiAnalysisState()
         
-        # Erstelle Test-Clients
-        for i in range(5):
+        # Erstelle Test-Clients (mindestens 10 für Training)
+        device_types = ["smartphone", "laptop", "tablet", "iot_device", "router"]
+        for i in range(15):
             mac = f"aa:bb:cc:dd:ee:{i:02x}"
             client = ClientState(mac=mac)
+            client.device_type = device_types[i % len(device_types)]
             client.probe_requests = [f"SSID_{i}"]
             client.first_seen = 1000.0
             client.last_seen = 1100.0

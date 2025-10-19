@@ -39,6 +39,9 @@ except ImportError as e:
         from sklearn.ensemble import VotingClassifier, RandomForestClassifier
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        import plotly.express as px
     except ImportError:
         pass
 
@@ -178,7 +181,7 @@ class Plugin(BasePlugin):
                 console.print(f"Test Accuracy: {test_accuracy:.3f}")
                 
                 # Classification Report
-                device_types = ['smartphone', 'laptop', 'tablet', 'iot_device', 'router', 'unknown']
+                device_types = ['smartphone', 'laptop', 'iot_device', 'router']
                 report = classification_report(y_test, y_pred, target_names=device_types, zero_division=0)
                 console.print(f"\nClassification Report:\n{report}")
             
@@ -535,7 +538,7 @@ class Plugin(BasePlugin):
         def create_bagging_ensemble(self, base_estimator: Any) -> BaggingClassifier:
             """Erstellt ein Bagging-Ensemble."""
             return BaggingClassifier(
-                base_estimator=base_estimator,
+                estimator=base_estimator,
                 n_estimators=50,
                 random_state=self.random_state,
                 max_samples=0.8,
@@ -546,7 +549,7 @@ class Plugin(BasePlugin):
             """Erstellt Boosting-Ensembles."""
             boosting_models = [
                 AdaBoostClassifier(
-                    base_estimator=DecisionTreeClassifier(max_depth=3),
+                    estimator=DecisionTreeClassifier(max_depth=3),
                     n_estimators=100,
                     random_state=self.random_state,
                     learning_rate=1.0

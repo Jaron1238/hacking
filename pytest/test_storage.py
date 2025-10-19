@@ -89,7 +89,7 @@ class TestClientState:
             'type': 'probe_req',
             'client': 'aa:bb:cc:dd:ee:ff',
             'rssi': -50,
-            'ies': {0: ['TestSSID']}
+            'ies': {'probes': ['TestSSID']}
         }
         
         client.update_from_event(event)
