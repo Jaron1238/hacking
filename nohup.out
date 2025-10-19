@@ -1,0 +1,222 @@
+[0;32m==================================================
+Sicheres Setup für WLAN Analysis Tool
+Ziel-Python-Version: LATEST
+==================================================\033[0m
+
+[1;33mSchritt 1: System wird aktualisiert und Build-Abhängigkeiten werden installiert...[0m
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Hit:1 http://deb.debian.org/debian bookworm InRelease
+Hit:2 http://archive.raspberrypi.com/debian bookworm InRelease
+Hit:3 http://deb.debian.org/debian-security bookworm-security InRelease
+Hit:4 http://deb.debian.org/debian bookworm-updates InRelease
+Reading package lists...
+Building dependency tree...
+Reading state information...
+All packages are up to date.
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Calculating upgrade...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+build-essential is already the newest version (12.9).
+libssl-dev is already the newest version (3.0.17-1~deb12u3+rpt1).
+zlib1g-dev is already the newest version (1:1.2.13.dfsg-1+rpt1).
+libbz2-dev is already the newest version (1.0.8-5+b1).
+libreadline-dev is already the newest version (8.2-1.3).
+libsqlite3-dev is already the newest version (3.40.1-2+deb12u2).
+curl is already the newest version (7.88.1-10+deb12u14).
+git is already the newest version (1:2.39.5-0+deb12u2).
+libncursesw5-dev is already the newest version (6.4-4).
+xz-utils is already the newest version (5.4.1-1).
+tk-dev is already the newest version (8.6.13).
+libxml2-dev is already the newest version (2.9.14+dfsg-1.3~deb12u4).
+libxmlsec1-dev is already the newest version (1.2.37-2).
+libffi-dev is already the newest version (3.4.4-1).
+liblzma-dev is already the newest version (5.4.1-1).
+python3-venv is already the newest version (3.11.2-1+b1).
+python3-pip is already the newest version (23.0.1+dfsg-1+rpt1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+[1;33mEntferne alte Kernel und räume das System auf...[0m
+
+WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
+
+[1;33mSchritt 2: pyenv wird installiert...[0m
+pyenv ist bereits installiert.
+
+[1;33mSuche nach der neuesten stabilen Python-Version...[0m
+Neueste gefundene Version: 3.13.7
+[1;33mSchritt 3: Installiere Python 3.13.7 mit pyenv...[0m
+Python 3.13.7 ist bereits installiert.
+
+[1;33mSchritt 4: Richte das Projekt für Python 3.13.7 ein...[0m
+Python-Version für dieses Verzeichnis auf 3.13.7 gesetzt.
+Erstelle Virtual Environment unter '/home/pi/hacking/.venv'...
+Virtual Environment existiert bereits und nutzt die korrekte Python-Version.
+
+[1;33mSchritt 5: Installiere Python-Pakete in der Virtual Environment...[0m
+Aktualisiere pip...
+Looking in indexes: https://pypi.org/simple, https://www.piwheels.org/simple
+Requirement already satisfied: pip in ./.venv/lib/python3.13/site-packages (25.2)
+Installiere Pakete aus requirements.txt...
+Looking in indexes: https://pypi.org/simple, https://www.piwheels.org/simple
+Collecting scikit-learn==1.4.0 (from -r requirements.txt (line 4))
+  Using cached scikit-learn-1.4.0.tar.gz (7.7 MB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting pandas==2.2.0 (from -r requirements.txt (line 5))
+  Using cached pandas-2.2.0.tar.gz (4.4 MB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Installing backend dependencies: started
+  Installing backend dependencies: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): still running...
+  Preparing metadata (pyproject.toml): finished with status 'error'
+  error: subprocess-exited-with-error
+  
+  × Preparing metadata (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [104 lines of output]
+      + meson setup /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/.mesonpy-0bl5_tnj/build -Dbuildtype=release -Db_ndebug=if-release -Db_vscrt=md --vsenv --native-file=/tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/.mesonpy-0bl5_tnj/build/meson-python-native-file.ini
+      The Meson build system
+      Version: 1.2.1
+      Source dir: /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c
+      Build dir: /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/.mesonpy-0bl5_tnj/build
+      Build type: native build
+      Project name: pandas
+      Project version: 2.2.0
+      C compiler for the host machine: cc (gcc 12.2.0 "cc (Debian 12.2.0-14+deb12u1) 12.2.0")
+      C linker for the host machine: cc ld.bfd 2.40
+      C++ compiler for the host machine: c++ (gcc 12.2.0 "c++ (Debian 12.2.0-14+deb12u1) 12.2.0")
+      C++ linker for the host machine: c++ ld.bfd 2.40
+      Cython compiler for the host machine: cython (cython 3.0.5)
+      Host machine cpu family: aarch64
+      Host machine cpu: aarch64
+      Program python found: YES (/home/pi/hacking/.venv/bin/python)
+      Found pkg-config: /usr/bin/pkg-config (1.8.1)
+      Run-time dependency python found: YES 3.13
+      Build targets in project: 53
+      
+      pandas 2.2.0
+      
+        User defined options
+          Native files: /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/.mesonpy-0bl5_tnj/build/meson-python-native-file.ini
+          buildtype   : release
+          vsenv       : True
+          b_ndebug    : if-release
+          b_vscrt     : md
+      
+      Found ninja-1.13.0.git.kitware.jobserver-pipe-1 at /tmp/pip-build-env-ff9j0eb8/normal/bin/ninja
+      
+      Visual Studio environment is needed to run Ninja. It is recommended to use Meson wrapper:
+      /tmp/pip-build-env-ff9j0eb8/overlay/bin/meson compile -C .
+      + /tmp/pip-build-env-ff9j0eb8/normal/bin/ninja
+      [1/151] Generating pandas/_libs/index_class_helper_pxi with a custom command
+      [2/151] Generating pandas/_libs/hashtable_class_helper_pxi with a custom command
+      [3/151] Generating pandas/_libs/algos_take_helper_pxi with a custom command
+      [4/151] Generating pandas/_libs/hashtable_func_helper_pxi with a custom command
+      [5/151] Generating pandas/_libs/khash_primitive_helper_pxi with a custom command
+      [6/151] Generating pandas/_libs/algos_common_helper_pxi with a custom command
+      [7/151] Generating pandas/_libs/intervaltree_helper_pxi with a custom command
+      [8/151] Generating pandas/_libs/sparse_op_helper_pxi with a custom command
+      [9/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/base.pyx
+      [10/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/ccalendar.pyx
+      [11/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/nattype.pyx
+      warning: /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/nattype.pyx:79:0: Global name __nat_unpickle matched from within class scope in contradiction to to Python 'class private name' rules. This may change in a future release.
+      warning: /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/nattype.pyx:79:0: Global name __nat_unpickle matched from within class scope in contradiction to to Python 'class private name' rules. This may change in a future release.
+      [12/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/dtypes.pyx
+      [13/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/fields.pyx
+      [14/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/conversion.pyx
+      [15/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/np_datetime.pyx
+      [16/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/parsing.pyx
+      [17/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/offsets.pyx
+      [18/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/period.pyx
+      [19/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/strptime.pyx
+      [20/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/timestamps.pyx
+      [21/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/timedeltas.pyx
+      [22/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/timezones.pyx
+      [23/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/tzconversion.pyx
+      [24/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslibs/vectorized.pyx
+      [25/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/arrays.pyx
+      [26/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/indexing.pyx
+      [27/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/hashing.pyx
+      [28/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/internals.pyx
+      [29/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/index.pyx
+      [30/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/hashtable.pyx
+      [31/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/lib.pyx
+      [32/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/join.pyx
+      [33/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/interval.pyx
+      [34/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/missing.pyx
+      [35/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/ops_dispatch.pyx
+      [36/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/groupby.pyx
+      [37/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/algos.pyx
+      [38/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/properties.pyx
+      [39/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/byteswap.pyx
+      [40/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/ops.pyx
+      [41/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/parsers.pyx
+      [42/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/sas.pyx
+      [43/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/testing.pyx
+      [44/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/reshape.pyx
+      [45/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/tslib.pyx
+      [46/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/window/indexers.pyx
+      [47/151] Compiling C object pandas/_libs/tslibs/base.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_base.pyx.c.o
+      [48/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/writers.pyx
+      [49/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/window/aggregations.pyx
+      [50/151] Compiling Cython source /tmp/pip-install-x_7pzn98/pandas_36b6f4db9c2d4c67a3e9c713dea58b6c/pandas/_libs/sparse.pyx
+      [51/151] Compiling C object pandas/_libs/tslibs/ccalendar.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_ccalendar.pyx.c.o
+      [52/151] Compiling C object pandas/_libs/tslibs/np_datetime.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_np_datetime.pyx.c.o
+      [53/151] Compiling C object pandas/_libs/tslibs/nattype.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_nattype.pyx.c.o
+      [54/151] Compiling C object pandas/_libs/tslibs/parsing.cpython-313-aarch64-linux-gnu.so.p/.._src_parser_tokenizer.c.o
+      [55/151] Compiling C object pandas/_libs/tslibs/dtypes.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_dtypes.pyx.c.o
+      [56/151] Compiling C object pandas/_libs/tslibs/conversion.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_conversion.pyx.c.o
+      [57/151] Compiling C object pandas/_libs/tslibs/fields.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_fields.pyx.c.o
+      [58/151] Compiling C object pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_offsets.pyx.c.o
+      FAILED: [code=1] pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_offsets.pyx.c.o
+      cc -Ipandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p -Ipandas/_libs/tslibs -I../../pandas/_libs/tslibs -I../../../../pip-build-env-ff9j0eb8/overlay/lib/python3.13/site-packages/numpy/core/include -I../../pandas/_libs/include -I/home/pi/.pyenv/versions/3.13.7/include/python3.13 -fvisibility=hidden -fdiagnostics-color=always -DNDEBUG -D_FILE_OFFSET_BITS=64 -w -std=c11 -O3 -DNPY_NO_DEPRECATED_API=0 -DNPY_TARGET_VERSION=NPY_1_21_API_VERSION -fPIC -MD -MQ pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_offsets.pyx.c.o -MF pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_offsets.pyx.c.o.d -o pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_offsets.pyx.c.o -c pandas/_libs/tslibs/offsets.cpython-313-aarch64-linux-gnu.so.p/pandas/_libs/tslibs/offsets.pyx.c
+      cc: fatal error: Killed signal terminated program cc1
+      compilation terminated.
+      [59/151] Compiling C object pandas/_libs/tslibs/parsing.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_parsing.pyx.c.o
+      [60/151] Compiling C object pandas/_libs/tslibs/strptime.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_strptime.pyx.c.o
+      [61/151] Compiling C object pandas/_libs/tslibs/period.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_period.pyx.c.o
+      [62/151] Compiling C object pandas/_libs/tslibs/timestamps.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_timestamps.pyx.c.o
+      [63/151] Compiling C object pandas/_libs/tslibs/timedeltas.cpython-313-aarch64-linux-gnu.so.p/meson-generated_pandas__libs_tslibs_timedeltas.pyx.c.o
+      ninja: build stopped: subcommand failed.
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: metadata-generation-failed
+
+× Encountered error while generating package metadata.
+╰─> See above for output.
+
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.

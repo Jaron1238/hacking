@@ -8,8 +8,8 @@ import tempfile
 from typing import Callable, Optional
 
 from ..storage import database
-from ..storage.state import WifiAnalysisState
-from . import analysis
+from ..storage.state import WifiAnalysisState 
+
 from .models import ClientAutoencoder
 
 logger = logging.getLogger(__name__)
