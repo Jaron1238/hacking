@@ -264,6 +264,9 @@ def _parse_ht_capabilities(hex_data: str) -> Dict:
                 caps["streams"] = 2
             elif rx_mcs[0] != 0:
                 caps["streams"] = 1
+            else:
+                # Fallback: Setze streams auf 1 wenn keine MCS-Daten vorhanden sind
+                caps["streams"] = 1
     except (ValueError, IndexError):
         pass
     return caps

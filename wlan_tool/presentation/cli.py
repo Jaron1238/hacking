@@ -21,7 +21,7 @@ def print_client_cluster_results(args, state, console):
     clustered_df, feature_df = analysis.cluster_clients(
         state,
         n_clusters=args.cluster_clients,
-        algo_name=args.cluster_algo,
+        algo=args.cluster_algo,
         use_correlation=(not args.no_mac_correlation),
     )
     """Gibt die Ergebnisse des Client-Clusterings formatiert aus."""
@@ -32,7 +32,7 @@ def print_client_cluster_results(args, state, console):
         return
 
     title_correlation_str = "& Korrelation" if use_correlation else "& ohne Korrelation"
-    title = f"Client-Cluster ({algo_name.upper()} {title_correlation_str})"
+    title = f"Client-Cluster ({args.cluster_algo.upper()} {title_correlation_str})"
     table = Table(title=title)
     if use_correlation:
         table.add_column("Geräte-ID / MAC")

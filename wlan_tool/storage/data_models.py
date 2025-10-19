@@ -218,6 +218,11 @@ class ClientState:
                     for ssid in ssid_ies:
                         if ssid and ssid.strip():
                             self.probes.add(ssid.strip())
+                # Extrahiere auch aus dem 'probes' Feld falls vorhanden
+                if probes := ies.get("probes", []):
+                    for ssid in probes:
+                        if ssid and ssid.strip():
+                            self.probes.add(ssid.strip())
         elif ev_type == "data":
             self.data_frame_count += 1
             if mcs := ev.get("mcs_index"):

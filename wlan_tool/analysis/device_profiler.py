@@ -58,7 +58,8 @@ def create_device_fingerprint(client_state) -> str:
     )
     
     if not has_data:
-        return ""
+        # Für leere ClientStates generiere einen konsistenten Hash basierend auf der MAC
+        return hashlib.md5(f"empty:{client_state.mac}".encode()).hexdigest()
 
     # 1. IE-Reihenfolge Hash (bereits in client_state.ie_order_hashes)
     if client_state.ie_order_hashes:

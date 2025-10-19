@@ -236,10 +236,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except NameError:
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -277,10 +274,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except NameError:
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -319,10 +313,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except NameError:
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
                 aic = gmm.aic(features_scaled)
                 bic = gmm.bic(features_scaled)
             else:
@@ -364,10 +355,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except NameError:
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -385,7 +373,7 @@ class Plugin(BasePlugin):
     
     def _run_hdbscan_clustering(self, features: np.ndarray) -> Tuple[np.ndarray, Dict]:
         """Führt HDBSCAN Clustering durch."""
-        if not HAS_HDBSCAN:
+        if not HAS_HDBSCAN or hdbscan is None:
             return np.zeros(len(features)), {"error": "HDBSCAN nicht verfügbar"}
         
         if len(features) < 3:
@@ -407,10 +395,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1 and -1 not in labels:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except NameError:
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0

@@ -610,6 +610,12 @@ def cluster_clients(
                 if n_clusters == 0:
                     optimal_k = find_optimal_k_elbow_and_silhouette(data_to_cluster)
                     n_clusters = optimal_k or 5
+                
+                # Überprüfe, ob genügend Samples vorhanden sind
+                if len(data_to_cluster) < n_clusters:
+                    logger.warning(f"Nicht genügend Clients für {n_clusters} Cluster. Verwende {len(data_to_cluster)} Cluster.")
+                    n_clusters = len(data_to_cluster)
+                
                 kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
                 labels = kmeans.fit_predict(data_to_cluster)
 
@@ -822,12 +828,21 @@ def _build_export_graph(
     Baut den NetworkX-Graphen mit allen erweiterten Attributen auf.
     Erstellt ein explizites Intervall-Attribut für maximale Kompatibilität mit Gephi.
     """
-
-    G = nx.Graph()
-    G.graph["mode"] = "dynamic"
-    G.graph["timeformat"] = "datetime"
-    G.graph["start"] = "2024-01-01T00:00:00"
-    G.graph["end"] = "2024-12-31T23:59:59"
+    try:
+        G = nx.Graph()
+        G.graph["mode"] = "dynamic"
+        G.graph["timeformat"] = "datetime"
+        G.graph["start"] = "2024-01-01T00:00:00"
+        G.graph["end"] = "2024-12-31T23:59:59"
+    except Exception as e:
+        # Fallback: Erstelle minimalen Graph
+        G = nx.Graph()
+        G.graph["mode"] = "dynamic"
+        G.graph["timeformat"] = "datetime"
+        G.graph["start"] = "2024-01-01T00:00:00"
+        G.graph["end"] = "2024-12-31T23:59:59"
+        logging.warning(f"Fehler beim Erstellen des Export-Graphen: {e}")
+        return G
 
     for _, row in clustered_ap_df.iterrows():
         bssid_str = str(row["bssid"])
@@ -947,6 +962,12 @@ def _discover_attributes(G: nx.Graph) -> tuple[dict, dict]:
                 and k not in ["start", "end"]
             ):
                 edge_attrs[k] = type_map.get(type(v), "string")
+    
+    # Debug: Logge die gefundenen Attribute
+    logging.debug(f"Node attrs: {node_attrs}")
+    logging.debug(f"Edge attrs: {edge_attrs}")
+    logging.debug(f"Edges: {list(G.edges(data=True))}")
+    
     return node_attrs, edge_attrs
 
 

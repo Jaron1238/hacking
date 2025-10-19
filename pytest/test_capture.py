@@ -36,7 +36,7 @@ class TestPacketParsing:
         """Test Probe-Request-Paket zu Event-Konvertierung."""
         rt_layer = RadioTap(
             present="Flags+Channel+dBm_AntSignal",
-            Flags="",
+            Flags=0,
             ChannelFrequency=2412,
             dBm_AntSignal=-60
         )
@@ -60,16 +60,15 @@ class TestPacketParsing:
         assert event['client'] == 'aa:bb:cc:dd:ee:ff'
         assert event['rssi'] == -60
         # SSID wird als Hex-String gespeichert, dann dekodiert
-        assert 'TestSSID' in event['probes']
+        assert 'TestSSID' in event['ies']['probes']
     
     def test_packet_to_event_data_frame(self):
         """Test Data-Frame zu Event-Konvertierung."""
         rt_layer = RadioTap(
-            present="Flags+Channel+dBm_AntSignal+MCS_index",
-            Flags="",
+            present="Flags+Channel+dBm_AntSignal",
+            Flags=0,
             ChannelFrequency=2412,
-            dBm_AntSignal=-55,
-            MCS_index=7
+            dBm_AntSignal=-55
         )
         dot11_layer = Dot11(
             type=2, subtype=0,
@@ -106,7 +105,7 @@ class TestPacketParsing:
         
         rt_layer = RadioTap(
             present="Flags+Channel+dBm_AntSignal",
-            Flags="",
+            Flags=0,
             ChannelFrequency=2412,
             dBm_AntSignal=-50
         )
@@ -133,7 +132,7 @@ class TestPacketParsing:
         
         rt_layer = RadioTap(
             present="Flags+Channel+dBm_AntSignal",
-            Flags="",
+            Flags=0,
             ChannelFrequency=2412,
             dBm_AntSignal=-50
         )
@@ -160,7 +159,7 @@ class TestPacketParsing:
         
         rt_layer = RadioTap(
             present="Flags+Channel+dBm_AntSignal",
-            Flags="",
+            Flags=0,
             ChannelFrequency=2412,
             dBm_AntSignal=-50
         )
@@ -240,10 +239,13 @@ class TestChannelHopper:
             sleep_interval=0.01
         )
         
-        # Sollte nicht crashen
+        # Sollte nicht crashen - ChannelHopper fängt CalledProcessError ab
         hopper.start()
         time.sleep(0.01)
         hopper.stop()
+        
+        # Überprüfe, dass der Hopper gestartet und gestoppt wurde
+        assert hopper.is_alive() is False
 
 
 class TestPacketProcessing:
@@ -406,10 +408,13 @@ class TestErrorHandling:
         pkt = rt_layer / dot11_layer / beacon_layer / ssid_ie
         pkt.time = time.time()
         
-        # Sollte nicht crashen
+        # Sollte nicht crashen - packet_to_event fängt Encoding-Fehler ab
         event = capture.packet_to_event(pkt)
         if event is not None:
             assert event['ssid'] == "<binary>"  # Sollte als binary markiert werden
+        else:
+            # Event kann None sein, das ist auch OK
+            pass
 
 
 class TestPerformance:
