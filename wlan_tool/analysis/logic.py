@@ -610,6 +610,12 @@ def cluster_clients(
                 if n_clusters == 0:
                     optimal_k = find_optimal_k_elbow_and_silhouette(data_to_cluster)
                     n_clusters = optimal_k or 5
+                
+                # Überprüfe, ob genügend Samples vorhanden sind
+                if len(data_to_cluster) < n_clusters:
+                    logger.warning(f"Nicht genügend Clients für {n_clusters} Cluster. Verwende {len(data_to_cluster)} Cluster.")
+                    n_clusters = len(data_to_cluster)
+                
                 kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
                 labels = kmeans.fit_predict(data_to_cluster)
 

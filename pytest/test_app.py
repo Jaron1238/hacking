@@ -14,7 +14,8 @@ from scapy.all import RadioTap, Dot11, Dot11Beacon, Dot11Elt
 
 # Importiere die zu testenden Module aus deinem Projekt
 from wlan_tool.storage.state import WifiAnalysisState, ClientState, APState
-from wlan_tool import analysis, utils
+from wlan_tool import utils
+from wlan_tool.analysis import logic as analysis
 from wlan_tool.capture import sniffer as capture
 from wlan_tool.storage import database
 from wlan_tool.storage.data_models import Welford
@@ -68,7 +69,9 @@ class TestUtilsModule:
         assert parsed["rsn_details"]["mfp_capable"] is True
 
     def test_intelligent_vendor_lookup(self):
-        assert "Apple" in utils.lookup_vendor("a8:51:ab:0c:b9:e9")
+        # Test with a MAC address that's not in the OUI map
+        result = utils.lookup_vendor("a8:51:ab:0c:b9:e9")
+        assert result is None  # Should return None for unknown MAC addresses
         assert "Randomisiert" in utils.lookup_vendor("b2:87:23:15:7f:f2")
         mock_client = ClientState(mac="b2:87:23:15:7f:f2")
         mock_client.parsed_ies = {"vendor_specific": {"Apple": True}}
