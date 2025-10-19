@@ -25,19 +25,45 @@ class TestEnsembleModelsPlugin:
         """Mock State mit Test-Clients."""
         state = WifiAnalysisState()
         
-        # Erstelle Test-Clients für verschiedene Gerätetypen
+        # Erstelle Test-Clients für verschiedene Gerätetypen (mindestens 5 pro Typ für Stratification)
+        # Verwende Vendor-Namen, die mit der Heuristik übereinstimmen
         device_configs = [
-            ("aa:bb:cc:dd:ee:00", "Apple", 20, "smartphone"),
-            ("aa:bb:cc:dd:ee:01", "Samsung", 15, "smartphone"),
-            ("aa:bb:cc:dd:ee:02", "Microsoft", 5, "laptop"),
-            ("aa:bb:cc:dd:ee:03", "Dell", 3, "laptop"),
-            ("aa:bb:cc:dd:ee:04", "TP-Link", 1, "router"),
-            ("aa:bb:cc:dd:ee:05", "Unknown", 2, "iot_device"),
+            # Smartphones (>50 probes)
+            ("aa:bb:cc:dd:ee:00", "Apple", 60, "smartphone"),
+            ("aa:bb:cc:dd:ee:01", "Samsung", 55, "smartphone"),
+            ("aa:bb:cc:dd:ee:02", "Huawei", 65, "smartphone"),
+            ("aa:bb:cc:dd:ee:03", "Xiaomi", 70, "smartphone"),
+            ("aa:bb:cc:dd:ee:04", "OnePlus", 80, "smartphone"),
+            ("aa:bb:cc:dd:ee:05", "Apple", 75, "smartphone"),
+            ("aa:bb:cc:dd:ee:06", "Samsung", 85, "smartphone"),
+            ("aa:bb:cc:dd:ee:07", "Huawei", 90, "smartphone"),
+            # Laptops (Microsoft, Dell, Lenovo, HP)
+            ("aa:bb:cc:dd:ee:08", "Microsoft", 20, "laptop"),
+            ("aa:bb:cc:dd:ee:09", "Dell", 15, "laptop"),
+            ("aa:bb:cc:dd:ee:0a", "Lenovo", 25, "laptop"),
+            ("aa:bb:cc:dd:ee:0b", "HP", 18, "laptop"),
+            ("aa:bb:cc:dd:ee:0c", "Microsoft", 22, "laptop"),
+            ("aa:bb:cc:dd:ee:0d", "Dell", 16, "laptop"),
+            ("aa:bb:cc:dd:ee:0e", "Lenovo", 24, "laptop"),
+            ("aa:bb:cc:dd:ee:0f", "HP", 19, "laptop"),
+            # IoT Devices (<5 probes)
+            ("aa:bb:cc:dd:ee:10", "Google", 2, "iot_device"),
+            ("aa:bb:cc:dd:ee:11", "Amazon", 3, "iot_device"),
+            ("aa:bb:cc:dd:ee:12", "Google", 1, "iot_device"),
+            ("aa:bb:cc:dd:ee:13", "Amazon", 4, "iot_device"),
+            ("aa:bb:cc:dd:ee:14", "Google", 2, "iot_device"),
+            ("aa:bb:cc:dd:ee:15", "Amazon", 3, "iot_device"),
+            # Routers (TP-Link, Netgear)
+            ("aa:bb:cc:dd:ee:16", "TP-Link", 10, "router"),
+            ("aa:bb:cc:dd:ee:17", "Netgear", 8, "router"),
+            ("aa:bb:cc:dd:ee:18", "TP-Link", 12, "router"),
+            ("aa:bb:cc:dd:ee:19", "Netgear", 9, "router"),
         ]
         
         for mac, vendor, probe_count, device_type in device_configs:
             client = ClientState(mac=mac)
             client.vendor = vendor
+            client.device_type = device_type
             client.probe_requests = [f"SSID_{i}" for i in range(probe_count)]
             client.first_seen = 1000.0
             client.last_seen = 1100.0
@@ -79,9 +105,9 @@ class TestEnsembleModelsPlugin:
         """Test Feature-Extraktion für Klassifizierung."""
         X, y, client_macs = plugin._extract_features_for_classification(mock_state, mock_events)
         
-        assert len(X) == 6  # 6 Test-Clients
-        assert len(y) == 6
-        assert len(client_macs) == 6
+        assert len(X) == 26  # 26 Test-Clients (erweiterte Mock-Daten)
+        assert len(y) == 26
+        assert len(client_macs) == 26
         assert X.shape[1] > 0  # Mindestens ein Feature
         
         # Überprüfe, dass alle Features numerisch sind
@@ -220,7 +246,7 @@ class TestEnsembleModelsPlugin:
             ModelPerformance("Model2", 0.85, 0.82, 0.85, 0.83, 0.84, 0.01, 1.5, 0.15),
         ]
         
-        with patch('plotly.graph_objects.go') as mock_go:
+        with patch('plotly.graph_objects') as mock_go:
             with patch('plotly.subplots.make_subplots') as mock_subplots:
                 mock_fig = MagicMock()
                 mock_subplots.return_value = mock_fig

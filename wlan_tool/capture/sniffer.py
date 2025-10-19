@@ -152,7 +152,9 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
 
         if pkt.haslayer(DNSQR) and pkt.dport == 53:
             try:
-                event["dns_query"] = pkt[DNSQR].qname.decode(errors="ignore")
+                dns_name = pkt[DNSQR].qname.decode(errors="ignore")
+                # Entferne den abschließenden Punkt von DNS-Namen
+                event["dns_query"] = dns_name.rstrip('.')
             except Exception:
                 pass
         elif pkt.haslayer(DHCP):

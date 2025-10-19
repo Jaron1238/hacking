@@ -59,7 +59,8 @@ class TestPacketParsing:
         assert event['type'] == 'probe_req'
         assert event['client'] == 'aa:bb:cc:dd:ee:ff'
         assert event['rssi'] == -60
-        assert 'TestSSID' in event['ies'][0]
+        # SSID wird als Hex-String gespeichert, dann dekodiert
+        assert 'TestSSID' in event['probes']
     
     def test_packet_to_event_data_frame(self):
         """Test Data-Frame zu Event-Konvertierung."""
@@ -349,7 +350,8 @@ class TestIEExtraction:
         assert isinstance(ie_order, list)
         assert 0 in ies  # SSID IE
         assert 221 in ies  # Vendor IE
-        assert 'TestSSID' in ies[0]
+        # IEs werden als Hex-Strings gespeichert
+        assert '5465737453534944' in ies[0]  # "TestSSID" in hex
         assert len(ie_order) == 2
     
     def test_collect_ies_empty_packet(self):

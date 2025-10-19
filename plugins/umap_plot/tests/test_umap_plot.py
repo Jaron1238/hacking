@@ -64,7 +64,7 @@ class TestUMAPPlotPlugin:
         temp_outdir.mkdir(exist_ok=True)
         
         with patch('umap.UMAP') as mock_umap:
-            with patch('plotly.express.px') as mock_px:
+            with patch('plugins.umap_plot.plugin.px') as mock_px:
                 # Mock UMAP
                 mock_reducer = MagicMock()
                 mock_reducer.fit_transform.return_value = np.array([[1, 2], [3, 4], [5, 6]])
