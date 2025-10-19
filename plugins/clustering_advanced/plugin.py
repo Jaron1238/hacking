@@ -236,11 +236,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    from sklearn.metrics import calinski_harabasz_score
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except (NameError, ImportError):
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -278,11 +274,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    from sklearn.metrics import calinski_harabasz_score
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except (NameError, ImportError):
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -321,11 +313,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    from sklearn.metrics import calinski_harabasz_score
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except (NameError, ImportError):
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
                 aic = gmm.aic(features_scaled)
                 bic = gmm.bic(features_scaled)
             else:
@@ -367,11 +355,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    from sklearn.metrics import calinski_harabasz_score
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except (NameError, ImportError):
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
@@ -411,11 +395,7 @@ class Plugin(BasePlugin):
             # Metriken berechnen
             if len(set(labels)) > 1 and -1 not in labels:
                 silhouette = silhouette_score(features_scaled, labels)
-                try:
-                    from sklearn.metrics import calinski_harabasz_score
-                    calinski = calinski_harabasz_score(features_scaled, labels)
-                except (NameError, ImportError):
-                    calinski = 0
+                calinski = calinski_harabasz_score(features_scaled, labels)
             else:
                 silhouette = 0
                 calinski = 0
