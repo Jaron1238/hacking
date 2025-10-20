@@ -28,23 +28,26 @@ class EnsembleModel:
         self.is_fitted = False
         self.estimators_ = None
         
-    def _create_model(self, base_estimator=None, estimators=None) -> Any:
-        """Erstellt das Ensemble-Modell."""
-        if self.algorithm == 'voting':
-            if estimators is None:
-                raise ValueError("Voting requires estimators list")
-            return VotingClassifier(estimators=estimators, **self.kwargs)
-        elif self.algorithm == 'bagging':
-            if base_estimator is None:
-                raise ValueError("Bagging requires base_estimator")
-            return BaggingClassifier(base_estimator=base_estimator, **self.kwargs)
-        elif self.algorithm == 'boosting':
-            if base_estimator is None:
-                raise ValueError("Boosting requires base_estimator")
-            return AdaBoostClassifier(base_estimator=base_estimator, **self.kwargs)
-        else:
-            raise ValueError(f"Unsupported ensemble algorithm: {self.algorithm}")
-    
+def _create_model(self, base_estimator=None, estimators=None) -> Any:
+    """Erstellt das Ensemble-Modell."""
+    if self.algorithm == 'voting':
+        if estimators is None:
+            raise ValueError("Voting requires estimators list")
+        # Ensure 'estimators' is not duplicated in kwargs
+        kwargs = self.kwargs.copy()
+        if 'estimators' in kwargs:
+            del kwargs['estimators']
+        return VotingClassifier(estimators=estimators, **kwargs)
+    elif self.algorithm == 'bagging':
+        if base_estimator is None:
+            raise ValueError("Bagging requires base_estimator")
+        return BaggingClassifier(base_estimator=base_estimator, **self.kwargs)
+    elif self.algorithm == 'boosting':
+        if base_estimator is None:
+            raise ValueError("Boosting requires base_estimator")
+        return AdaBoostClassifier(base_estimator=base_estimator, **self.kwargs)
+    else:
+        raise ValueError(f"Unsupported ensemble algorithm: {self.algorithm}")    
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> 'EnsembleModel':
         """Trainiert das Ensemble-Modell."""
         if len(X) != len(y):
