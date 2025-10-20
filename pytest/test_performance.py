@@ -18,7 +18,7 @@ from wlan_tool import utils
 from wlan_tool.storage import database
 
 
-@pytest.mark.performance
+@pytest.mark.slow
 class TestPacketProcessingPerformance:
     """Tests für Paket-Verarbeitungs-Performance."""
     

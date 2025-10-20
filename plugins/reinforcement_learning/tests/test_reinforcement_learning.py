@@ -11,7 +11,7 @@ from collections import defaultdict
 from plugins.reinforcement_learning.plugin import Plugin, ActionType, WiFiEnvironmentState
 from wlan_tool.storage.state import WifiAnalysisState, ClientState
 
-
+@pytest.mark.slow
 class TestReinforcementLearningPlugin:
     """Test-Klasse für das Reinforcement Learning Plugin."""
     

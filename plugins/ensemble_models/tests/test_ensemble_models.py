@@ -11,7 +11,7 @@ from collections import defaultdict
 from plugins.ensemble_models.plugin import Plugin
 from wlan_tool.storage.state import WifiAnalysisState, ClientState
 
-
+@pytest.mark.slow
 class TestEnsembleModelsPlugin:
     """Test-Klasse für das Ensemble Models Plugin."""
     
