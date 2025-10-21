@@ -184,7 +184,7 @@ class WifiAnalysisState:
             if mac in self.clients:
                 self.clients[mac].ip_address = ev.get("arp_ip")
 
-    def prune_state(self, current_ts: float, threshold_s: int) -> int:
+def prune_state(self, current_ts: float, threshold_s: int) -> int:
         stale_bssids = {
             bssid
             for bssid, ap in self.aps.items()
@@ -225,8 +225,13 @@ class WifiAnalysisState:
         if stale_ssids:
             for ssid in stale_ssids:
                 del self.ssid_map[ssid]
-                if ssid in self.clients_probing_ssid:
-                    del self.clients_probing_ssid[ssid]
+
+        # KORREKTUR: Bereinige stale Clients aus self.clients_probing_ssid
+        for ssid, client_macs in list(self.clients_probing_ssid.items()):
+            client_macs.intersection_update(all_active_clients)
+            if not client_macs:
+                del self.clients_probing_ssid[ssid]
+
         total_pruned = (
             len(stale_bssids)
             + len(stale_clients)
