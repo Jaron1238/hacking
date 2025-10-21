@@ -30,6 +30,8 @@ class Plugin(BasePlugin):
             dependencies=["umap-learn", "plotly", "pandas"]
         )
     
+
+
     def run(self, state, clustered_client_df: pd.DataFrame = None, client_feature_df: pd.DataFrame = None, outdir: Path = None, console = None, **kwargs):
         """
         Erstellt eine interaktive 2D-Karte aller Clients mit UMAP und Plotly.
@@ -93,3 +95,4 @@ class Plugin(BasePlugin):
             if console:
                 console.print(f"[red]Fehler bei der Erstellung der Client-Map: {e}[/red]")
             logger.error(f"Fehler bei der Erstellung der Client-Map: {e}", exc_info=True)
+        

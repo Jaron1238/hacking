@@ -33,6 +33,8 @@ from scapy.layers.l2 import ARP, LLC, SNAP
 
 
 def _extract_seq(dot11) -> Optional[int]:
+    if dot11 is None:
+        return None
     try:
         sc = getattr(dot11, "SC", 0)
         if sc is None:
@@ -40,7 +42,6 @@ def _extract_seq(dot11) -> Optional[int]:
         return int(sc) >> 4
     except (TypeError, ValueError):
         return None
-
 
 def _collect_ies_from_pkt(pkt) -> Tuple[Dict[int, List[str]], List[int]]:
     """Sammelt IEs und deren Reihenfolge."""
@@ -125,12 +126,12 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
                     event["cap"] = int(bcn.cap)
 
             try:
-                ssid = (
-                    pkt.info.decode(errors="ignore")
-                    if hasattr(pkt, "info")
-                    else "<hidden>"
-                )
-                event["ssid"] = ssid or "<hidden>"
+                if hasattr(pkt, "info"):
+                    # Let it raise an exception on encoding error by removing errors="ignore"
+                    ssid = pkt.info.decode() 
+                    event["ssid"] = ssid or "<hidden>"
+                else:
+                    event["ssid"] = "<hidden>"
             except Exception:
                 event["ssid"] = "<binary>"
 
@@ -156,7 +157,7 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
         if pkt.haslayer(DNSQR) and pkt.dport == 53:
             try:
                 dns_name = pkt[DNSQR].qname.decode(errors="ignore")
-                # Entferne den abschließenden Punkt von DNS-Namen
+                # Remove trailing dot from DNS names
                 event["dns_query"] = dns_name.rstrip('.')
             except Exception:
                 pass
@@ -178,7 +179,6 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
         return event
 
     return None
-
 
 class ChannelHopper(threading.Thread):
     def __init__(self, iface: str, channels: List[int], sleep_interval: float):

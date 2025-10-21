@@ -123,11 +123,10 @@ class TestUMAPPlotPlugin:
             console=mock_console
         )
         
-        # Überprüfe Warnung für fehlende UMAP/Plotly
+        # Korrigierte Überprüfung: Erwarte die Warnung über fehlende Daten
         warning_calls = [call for call in mock_console.print.call_args_list 
-                        if "UMAP/Plotly nicht verfügbar" in str(call)]
-        assert len(warning_calls) > 0
-    
+                        if "Keine Cluster-Daten verfügbar" in str(call)]
+        assert len(warning_calls) > 0    
     def test_plugin_run_with_empty_feature_data(self, plugin, mock_clustered_client_df, mock_console, temp_outdir):
         """Test Plugin-Ausführung mit leeren Feature-Daten."""
         temp_outdir.mkdir(exist_ok=True)
@@ -142,11 +141,10 @@ class TestUMAPPlotPlugin:
             console=mock_console
         )
         
-        # Überprüfe Warnung für fehlende UMAP/Plotly
+        # Korrigierte Überprüfung: Erwarte die Warnung über fehlende Daten
         warning_calls = [call for call in mock_console.print.call_args_list 
-                        if "UMAP/Plotly nicht verfügbar" in str(call)]
-        assert len(warning_calls) > 0
-    
+                        if "Keine Cluster-Daten verfügbar" in str(call)]
+        assert len(warning_calls) > 0    
     def test_feature_preparation(self, plugin, mock_clustered_client_df, mock_client_feature_df):
         """Test Vorbereitung der Features für UMAP."""
         # Simuliere die interne Logik

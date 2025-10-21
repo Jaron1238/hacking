@@ -215,24 +215,30 @@ class TestAnalysisController:
         assert controller.state_obj == populated_state
     
     @patch('wlan_tool.analysis.logic.score_pairs_with_recency_and_matching')
-    def test_run_inference(self, mock_score, mock_console, populated_state):
+    @patch('pathlib.Path.exists', return_value=True)
+    @patch('joblib.load')
+    @patch('wlan_tool.analysis.logic.score_pairs_with_recency_and_matching')
+    @patch('pathlib.Path.exists', return_value=True)
+    @patch('joblib.load')
+    @patch('wlan_tool.analysis.logic.score_pairs_with_recency_and_matching')
+    def test_run_inference(self, mock_score, mock_joblib_load, mock_path_exists, mock_console, populated_state):
         """Test Inferenz-Ausführung."""
         mock_score.return_value = []
-        
+        mock_joblib_load.return_value = "mock_model"
+
         args = MagicMock()
         args.infer = True
-        args.model = None
+        args.model = "dummy_model_path.pkl"
+        args.html_report = False
+        
         config_data = {}
         plugins = {}
         new_events = []
-        
         controller = AnalysisController(args, config_data, mock_console, plugins, populated_state, new_events)
-        
-        controller.run_inference()
-        
-        mock_score.assert_called_once()
-    
-    @patch('wlan_tool.analysis.logic.cluster_clients')
+
+        controller.run_analysis()
+
+        mock_score.assert_called_once_with(populated_state, "mock_model")    @patch('wlan_tool.analysis.logic.cluster_clients')
     def test_run_client_clustering(self, mock_cluster, mock_console, populated_state):
         """Test Client-Clustering."""
         mock_cluster.return_value = (None, None)
