@@ -37,7 +37,7 @@ db-shm
 *.tmp
 *.bak
 *.backup
-
+MagicMock/
 # OS
 Thumbs.db
 .directory
