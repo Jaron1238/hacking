@@ -343,9 +343,7 @@ class AnalysisController:
     def run_ap_clustering(self):
         """Führt AP-Clustering durch."""
         logging.info("Führe AP-Clustering durch...")
-        # Placeholder implementation
-        pass
-
+        analysis.cluster_aps(self.state_obj, n_clusters=self.args.cluster_aps)
     def run_labeling_ui(self):
         """Startet Labeling-UI."""
         logging.info("Starte Labeling-UI...")
