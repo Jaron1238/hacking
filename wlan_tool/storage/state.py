@@ -184,7 +184,7 @@ class WifiAnalysisState:
             if mac in self.clients:
                 self.clients[mac].ip_address = ev.get("arp_ip")
 
-def prune_state(self, current_ts: float, threshold_s: int) -> int:
+    def prune_state(self, current_ts: float, threshold_s: int) -> int:
         stale_bssids = {
             bssid
             for bssid, ap in self.aps.items()
@@ -247,3 +247,5 @@ def prune_state(self, current_ts: float, threshold_s: int) -> int:
                 len(stale_ssids),
             )
         return total_pruned
+
+pass
