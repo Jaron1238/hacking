@@ -344,12 +344,15 @@ class AnalysisController:
         """Führt AP-Clustering durch."""
         logging.info("Führe AP-Clustering durch...")
         analysis.cluster_aps(self.state_obj, n_clusters=self.args.cluster_aps)
-    def run_labeling_ui(self):
-        """Startet Labeling-UI."""
-        logging.info("Starte Labeling-UI...")
-        # Placeholder implementation
-        pass
-
+def run_labeling_ui(self):
+    """Startet Labeling-UI."""
+    # Ruft die UI-Funktion aus dem cli-Modul auf
+    cli.interactive_label_ui(
+        db_path_events=self.db_path,
+        label_db_path=self.label_db_path,
+        model_path=self.args.model,
+        console=self.console,
+    )
     def run_client_labeling_ui(self):
         """Startet Client-Labeling-UI."""
         logging.info("Starte Client-Labeling-UI...")

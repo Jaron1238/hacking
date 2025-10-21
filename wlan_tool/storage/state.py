@@ -12,10 +12,6 @@ from .data_models import APState, ClientState, EventType, Welford
 
 logger = logging.getLogger(__name__)
 
-# KORREKTUR: Definiere benannte Funktionen auf der obersten Ebene des Moduls
-# als Ersatz für die Lambdas.
-
-
 def _create_default_sources_entry():
     """Erstellt ein defaultdict(set) für die 'sources' in ssid_map."""
     return defaultdict(set)
@@ -37,7 +33,6 @@ class WifiAnalysisState:
     def __init__(self):
         self.aps: Dict[str, APState] = {}
         self.clients: Dict[str, ClientState] = {}
-        # KORREKTUR: Verwende die benannten Funktionen anstelle der Lambdas
         self.ssid_map: Dict[str, Dict] = defaultdict(_create_default_ssid_map_entry)
         self.seq_local: Dict[Tuple[str, str], Dict] = defaultdict(
             _create_default_seq_local_entry
@@ -131,9 +126,8 @@ class WifiAnalysisState:
             if ies := ev.get("ies", {}):
                 client.parsed_ies = parse_ies(ies, detailed=detailed_ies)
                 if probes := ies.get("probes"):
-                    new_probes = set(probes) - client.probes
-                    client.probes.update(new_probes)
-                    for s in new_probes:
+                    client.probes.update(probes)
+                    for s in probes:
                         if s:
                             self.ssid_map[s]["sources"]["probe_req"].add(client_mac)
                             self.clients_probing_ssid[s].add(client_mac)
@@ -247,5 +241,3 @@ class WifiAnalysisState:
                 len(stale_ssids),
             )
         return total_pruned
-
-pass

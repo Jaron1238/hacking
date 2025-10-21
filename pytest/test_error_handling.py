@@ -334,16 +334,15 @@ class TestLoggingSystem:
 class TestDatabaseErrorHandling:
     """Tests für Datenbank-Error-Handling."""
     
-    def test_database_connection_error(self):
-        """Test Datenbankverbindungs-Fehler."""
-        with pytest.raises(DatabaseError) as exc_info:
-            from wlan_tool.storage.database import db_conn_ctx
-            with db_conn_ctx("/invalid/path/database.db"):
-                pass
-        
-        assert "Cannot create database directory" in str(exc_info.value)
-        assert exc_info.value.error_code == "SQLITE_ERROR"
+def test_database_connection_error(self):
+    """Test Datenbankverbindungs-Fehler."""
+    with pytest.raises(FileSystemError) as exc_info:
+        from wlan_tool.storage.database import db_conn_ctx
+        with db_conn_ctx("/invalid/path/database.db"):
+            pass
     
+    assert "Cannot create database directory" in str(exc_info.value)
+    assert exc_info.value.error_code == "DB_DIR_CREATION_FAILED"    
     def test_database_migration_error(self):
         """Test Datenbankmigrations-Fehler."""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
