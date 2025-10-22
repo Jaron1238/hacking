@@ -94,7 +94,7 @@ class APState:
     bssid: str
     ssid: Optional[str] = None
     first_seen: float = 0.0
-    last_seen: float = 0.0
+    last_seen: float = field(init=False)
     count: int = 0
     beacon_count: int = 0
     probe_resp_count: int = 0
@@ -109,6 +109,9 @@ class APState:
     # KORREKTUR: Fehlende RF-Attribute hinzugefügt
     noise_w: Welford = field(default_factory=Welford)
     fcs_error_count: int = 0
+
+    def __post_init__(self):
+        self.last_seen = self.first_seen
 
     def update_from_beacon(self, ev: dict, detailed_ies: bool = False):
         """Aktualisiert den AP-State basierend auf einem Beacon-Event."""
@@ -161,7 +164,7 @@ class ClientState:
 
     mac: str
     first_seen: float = 0.0
-    last_seen: float = 0.0
+    last_seen: float = field(init=False)
     count: int = 0
     probes: Set[str] = field(default_factory=set)
     seen_with: Set[str] = field(default_factory=set)
@@ -180,6 +183,9 @@ class ClientState:
     noise_w: Welford = field(default_factory=Welford)
     fcs_error_count: int = 0
     ie_order_hashes: Set[int] = field(default_factory=set)
+
+    def __post_init__(self):
+        self.last_seen = self.first_seen
 
     def update_from_event(self, ev: dict, detailed_ies: bool = False):
         """Aktualisiert den Client-State basierend auf einem Event."""
