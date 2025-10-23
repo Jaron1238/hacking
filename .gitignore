@@ -12,6 +12,8 @@ build/
 .pytest_cache/
 .coverage
 .ai_agent_state.json
+agent_run.log
+chroma/
 
 # Virtual Environment
 .venv/
