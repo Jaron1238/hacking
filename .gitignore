@@ -14,7 +14,7 @@ build/
 .ai_agent_state.json
 agent_run.log
 chroma/
-
+agent_state.json
 # Virtual Environment
 .venv/
 venv/
