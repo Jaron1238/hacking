@@ -5,6 +5,7 @@ Tests für das Controllers-Modul (controllers.py).
 """
 
 import pytest
+import subprocess
 import tempfile
 import time
 from unittest.mock import MagicMock, patch, call
