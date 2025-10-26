@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+import logging
 
 from plugins.umap_plot.plugin import Plugin
 
@@ -109,24 +110,20 @@ class TestUMAPPlotPlugin:
             # Überprüfe Warnung für fehlendes UMAP
             warning_calls = [call for call in mock_console.print.call_args_list 
                             if "UMAP/Plotly nicht verfügbar" in str(call)]
-            assert len(warning_calls) > 0
+            mock_console.print.assert_any_call("[yellow]UMAP/Plotly nicht verfügbar. Installiere mit: pip install umap-learn plotly[/yellow]")
     
-    def test_plugin_run_without_clustered_data(self, plugin, mock_console, temp_outdir):
+    def test_plugin_run_without_clustered_data(self, plugin, mock_console, temp_outdir, mock_client_feature_df):
         """Test Plugin-Ausführung ohne Cluster-Daten."""
         temp_outdir.mkdir(exist_ok=True)
         
         plugin.run(
             state=None,
             clustered_client_df=None,
-            client_feature_df=None,
+            client_feature_df=mock_client_feature_df,
             outdir=temp_outdir,
             console=mock_console
         )
-        
-        # Überprüfe Warnung für fehlende UMAP/Plotly
-        warning_calls = [call for call in mock_console.print.call_args_list 
-                        if "UMAP/Plotly nicht verfügbar" in str(call)]
-        assert len(warning_calls) > 0
+        mock_console.print.assert_any_call("[yellow]Keine Cluster-Daten verfügbar für UMAP-Visualisierung.[/yellow]")
     
     def test_plugin_run_with_empty_feature_data(self, plugin, mock_clustered_client_df, mock_console, temp_outdir):
         """Test Plugin-Ausführung mit leeren Feature-Daten."""
