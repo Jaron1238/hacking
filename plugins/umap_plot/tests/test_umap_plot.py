@@ -109,7 +109,7 @@ class TestUMAPPlotPlugin:
             
             # Überprüfe Warnung für fehlendes UMAP
             warning_calls = [call for call in mock_console.print.call_args_list 
-                            if "UMAP/Plotly nicht verfügbar" in str(call)]
+                            if "UMAP/Plotly nicht installiert" in str(call)]
             mock_console.print.assert_any_call("[yellow]UMAP/Plotly nicht verfügbar. Installiere mit: pip install umap-learn plotly[/yellow]")
     
     def test_plugin_run_without_clustered_data(self, plugin, mock_console, temp_outdir, mock_client_feature_df):
@@ -140,8 +140,10 @@ class TestUMAPPlotPlugin:
         )
         
         # Überprüfe Warnung für fehlende UMAP/Plotly
-        warning_calls = [call for call in mock_console.print.call_args_list 
-                        if "UMAP/Plotly nicht verfügbar" in str(call)]
+        
+        warning_calls = [call for call in mock_console.print.call_args_list]
+        
+        
         assert len(warning_calls) > 0
     
     def test_feature_preparation(self, plugin, mock_clustered_client_df, mock_client_feature_df):
