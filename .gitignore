@@ -34,7 +34,7 @@ env/
 *.db-shm
 db-wal
 db-shm
-
+agent_run.json
 # Temporary files
 *.tmp
 *.bak
