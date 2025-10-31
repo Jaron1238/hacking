@@ -20,7 +20,7 @@ agent_state.json
 venv/
 ENV/
 env/
-
+dashboard/
 # IDEs
 .vscode/
 .idea/
