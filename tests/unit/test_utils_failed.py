@@ -1,6 +1,21 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Tests für das Utils-Modul - Fixed Version.
+"""
+
+import pytest
+import tempfile
+from unittest.mock import MagicMock, patch
+from pathlib import Path
+
+from wlan_tool import utils
 
 
-def test_lookup_vendor_apple_mac(self):
+class TestOUIFunctions:
+    """Tests für OUI-bezogene Funktionen."""
+    
+    def test_lookup_vendor_apple_mac(self):
         """Test Vendor-Lookup für Apple-MAC."""
         # Apple MAC-Adresse
         mac = "a8:51:ab:0c:b9:e9"
@@ -8,8 +23,8 @@ def test_lookup_vendor_apple_mac(self):
         
         assert vendor is not None
         assert "Apple" in vendor
-
-def test_lookup_vendor_randomized_mac(self):
+    
+    def test_lookup_vendor_randomized_mac(self):
         """Test Vendor-Lookup für randomisierte MAC."""
         # Randomisierte MAC-Adresse
         mac = "b2:87:23:15:7f:f2"
@@ -17,8 +32,8 @@ def test_lookup_vendor_randomized_mac(self):
         
         assert vendor is not None
         assert "Randomisiert" in vendor
-
-def test_lookup_vendor_unknown_mac(self):
+    
+    def test_lookup_vendor_unknown_mac(self):
         """Test Vendor-Lookup für unbekannte MAC."""
         # Unbekannte MAC-Adresse
         mac = "ff:ff:ff:ff:ff:ff"
@@ -26,8 +41,8 @@ def test_lookup_vendor_unknown_mac(self):
         
         # Sollte None oder "Unknown" zurückgeben
         assert vendor is None or vendor == "Unknown"
-
-def test_intelligent_vendor_lookup(self, mock_client_state):
+    
+    def test_intelligent_vendor_lookup(self, mock_client_state):
         """Test intelligenter Vendor-Lookup."""
         # Mock ClientState mit Apple-IE
         mock_client_state.parsed_ies = {"vendor_specific": {"Apple": True}}
@@ -36,8 +51,8 @@ def test_intelligent_vendor_lookup(self, mock_client_state):
         
         assert vendor is not None
         assert "Apple" in vendor
-
-def test_intelligent_vendor_lookup_no_ies(self, mock_client_state):
+    
+    def test_intelligent_vendor_lookup_no_ies(self, mock_client_state):
         """Test intelligenter Vendor-Lookup ohne IEs."""
         # Mock ClientState ohne IEs
         mock_client_state.parsed_ies = {}
@@ -46,8 +61,9 @@ def test_intelligent_vendor_lookup_no_ies(self, mock_client_state):
         
         # Sollte auf Standard-Lookup zurückfallen
         assert vendor is not None
-
-def test_download_oui_file_success(self, mock_oui_path):
+    
+    @patch('wlan_tool.utils.OUI_LOCAL_PATH')
+    def test_download_oui_file_success(self, mock_oui_path):
         """Test OUI-Datei-Download (erfolgreich)."""
         # Mock temporäre Datei
         with tempfile.NamedTemporaryFile(delete=False) as f:
@@ -67,8 +83,9 @@ def test_download_oui_file_success(self, mock_oui_path):
         
         # Cleanup
         Path(temp_path).unlink(missing_ok=True)
-
-def test_download_oui_file_failure(self, mock_oui_path):
+    
+    @patch('wlan_tool.utils.OUI_LOCAL_PATH')
+    def test_download_oui_file_failure(self, mock_oui_path):
         """Test OUI-Datei-Download (Fehler)."""
         mock_oui_path.return_value = Path("/tmp/test_oui")
         

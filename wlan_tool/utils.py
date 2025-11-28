@@ -237,13 +237,15 @@ def intelligent_vendor_lookup(
 _IE_FP_CACHE: Dict[int, str] = {}
 
 
-def ie_fingerprint_hash(ies: Dict[int, List[str]]) -> str:
+def ie_fingerprint_hash(ies: Dict[int, List[str]]) -> Optional[str]:
+    if not ies:
+        return None
     key = hash(tuple((k, tuple(v)) for k, v in sorted(ies.items())))
     if key in _IE_FP_CACHE:
         return _IE_FP_CACHE[key]
     items = [f"{k}:" + ",".join(sorted(ies[k])) for k in sorted(ies.keys())]
     s = "|".join(items)
-    h = hashlib.sha1(s.encode()).hexdigest()
+    h = hashlib.md5(s.encode()).hexdigest()
     _IE_FP_CACHE[key] = h
     return h
 
@@ -284,44 +286,6 @@ def _parse_vht_capabilities(hex_data: str) -> Dict:
     except (ValueError, IndexError):
         pass
     return caps
-
-
-def _parse_rsn_details(hex_data: str) -> Dict:
-    details = {
-        "pairwise_ciphers": set(),
-        "akm_suites": set(),
-        "mfp_capable": False,
-        "mfp_required": False,
-    }
-    try:
-        data = bytes.fromhex(hex_data)
-        offset = 4
-        count = int.from_bytes(data[2:4], "little")
-        for _ in range(count):
-            suite = data[offset : offset + 4].hex()
-            if suite == "000fac02":
-                details["pairwise_ciphers"].add("TKIP")
-            elif suite == "000fac04":
-                details["pairwise_ciphers"].add("CCMP-128 (AES)")
-            offset += 4
-        count = int.from_bytes(data[offset : offset + 2], "little")
-        offset += 2
-        for _ in range(count):
-            suite = data[offset : offset + 4].hex()
-            if suite == "000fac01":
-                details["akm_suites"].add("802.1X (EAP)")
-            elif suite == "000fac02":
-                details["akm_suites"].add("PSK")
-            offset += 4
-        if len(data) > offset:
-            caps = int.from_bytes(data[offset : offset + 2], "little")
-            details["mfp_capable"] = bool(caps & (1 << 7))
-            details["mfp_required"] = bool(caps & (1 << 6))
-    except (ValueError, IndexError):
-        pass
-    details["pairwise_ciphers"] = sorted(list(details["pairwise_ciphers"]))
-    details["akm_suites"] = sorted(list(details["akm_suites"]))
-    return details
 
 
 def _parse_rsn_details(hex_data: str) -> Dict:

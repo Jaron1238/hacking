@@ -167,8 +167,8 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
                     for opt in pkt[DHCP].options
                     if isinstance(opt, tuple)
                 }
-                if dhcp_options.get(53) in [3, 5] and "hostname" in dhcp_options:
-                    event["hostname"] = dhcp_options["hostname"].decode(errors="ignore")
+                if dhcp_options.get(53) in [3, 5] and 12 in dhcp_options:
+                    event["hostname"] = dhcp_options[12].decode(errors="ignore")
             except Exception:
                 pass
         elif pkt.haslayer(ARP) and pkt[ARP].op == 2:
@@ -207,7 +207,7 @@ class ChannelHopper(threading.Thread):
 
             try:
                 command = ["iw", "dev", self.iface, "set", "channel", str(channel), bw]
-                subprocess.run(command, check=True, capture_output=True, text=True)
+                result = subprocess.run(command, check=True, capture_output=True, text=True)
             except (subprocess.CalledProcessError, FileNotFoundError):
                 try:
                     logger.debug(
@@ -221,7 +221,7 @@ class ChannelHopper(threading.Thread):
                         "channel",
                         str(channel),
                     ]
-                    subprocess.run(
+                    result = subprocess.run(
                         fallback_command, check=True, capture_output=True, text=True
                     )
                 except (subprocess.CalledProcessError, FileNotFoundError) as e_fallback:
@@ -231,6 +231,9 @@ class ChannelHopper(threading.Thread):
                         e_fallback,
                     )
                     time.sleep(5)
+                except Exception as e:
+                    logger.error("Unerwarteter Fehler beim Channel-Hopping: %s", e)
+                    time.sleep(1)
 
             idx = (idx + 1) % len(self.channels)
             time.sleep(self.sleep_interval)
