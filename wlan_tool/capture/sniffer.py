@@ -34,8 +34,8 @@ from scapy.layers.l2 import ARP, LLC, SNAP
 
 def _extract_seq(dot11) -> Optional[int]:
     try:
-        sc = getattr(dot11, "SC", 0)
-        if sc is None:
+        sc = getattr(dot11, "SC", None)
+        if sc is None or sc == 0:
             return None
         return int(sc) >> 4
     except (TypeError, ValueError):
@@ -125,12 +125,14 @@ def packet_to_event(pkt) -> Optional[WifiEvent]:
                     event["cap"] = int(bcn.cap)
 
             try:
-                ssid = (
-                    pkt.info.decode(errors="ignore")
-                    if hasattr(pkt, "info")
-                    else "<hidden>"
-                )
-                event["ssid"] = ssid or "<hidden>"
+                if hasattr(pkt, "info") and pkt.info:
+                    try:
+                        ssid = pkt.info.decode('utf-8')
+                        event["ssid"] = ssid or "<hidden>"
+                    except UnicodeDecodeError:
+                        event["ssid"] = "<binary>"
+                else:
+                    event["ssid"] = "<hidden>"
             except Exception:
                 event["ssid"] = "<binary>"
 

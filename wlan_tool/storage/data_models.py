@@ -157,6 +157,30 @@ class APState:
         if ev.get("fcs_error"):
             self.fcs_error_count += 1
 
+    def update_from_event(self, ev: dict, detailed_ies: bool = False):
+        """Allgemeine Event-Update-Methode für APState."""
+        ev_type = ev.get("type")
+        if ev_type == "beacon":
+            self.update_from_beacon(ev, detailed_ies)
+        elif ev_type == "probe_resp":
+            # Ähnlich wie Beacon, aber ohne Beacon-spezifische Felder
+            ts = ev.get("ts", 0.0)
+            self.last_seen = ts
+            self.count += 1
+            self.probe_resp_count += 1
+            
+            if rssi := ev.get("rssi"):
+                self.rssi_w.update(rssi)
+            if noise := ev.get("noise"):
+                self.noise_w.update(noise)
+            if channel := ev.get("channel"):
+                self.channel = channel
+            if ssid := ev.get("ssid"):
+                if ssid != "<hidden>":
+                    self.ssid = ssid
+            if ev.get("fcs_error"):
+                self.fcs_error_count += 1
+
 
 @dataclass
 class ClientState:

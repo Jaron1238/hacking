@@ -152,26 +152,28 @@ class TestLargeDataset:
         # Erstelle großen State
         state = WifiAnalysisState()
         
+        from wlan_tool.storage.data_models import APState, ClientState, Welford
+        import numpy as np
+        
         # Erstelle 100 APs
         for i in range(100):
             bssid = f"08:96:d7:1a:21:{i:02x}"
-            ap = state.aps[bssid] = state.aps.get(bssid, type(state).__dict__['aps'].__class__())()
-            ap.bssid = bssid
-            ap.ssid = f"AP_{i}"
+            ap = APState(bssid=bssid, ssid=f"AP_{i}")
             ap.channel = (i % 13) + 1
             ap.beacon_count = 10 + i
-            ap.rssi_w = type(state).__dict__['aps'].__class__()()
+            ap.rssi_w = Welford()
             ap.rssi_w.update(-50 - i)
+            state.aps[bssid] = ap
         
         # Erstelle 200 Clients
         for i in range(200):
             mac = f"aa:bb:cc:dd:ee:{i:02x}"
-            client = state.clients[mac] = state.clients.get(mac, type(state).__dict__['clients'].__class__())()
-            client.mac = mac
+            client = ClientState(mac=mac)
             client.probes = {f"SSID_{i % 50}"}
-            client.all_packet_ts = [time.time() - 100 + i, time.time() - 50 + i]
-            client.rssi_w = type(state).__dict__['clients'].__class__()()
+            client.all_packet_ts = np.array([time.time() - 100 + i, time.time() - 50 + i])
+            client.rssi_w = Welford()
             client.rssi_w.update(-50 - i)
+            state.clients[mac] = client
         
         # Teste Clustering
         clustered_df, feature_df = analysis.cluster_clients(state, n_clusters=5)
@@ -290,14 +292,17 @@ class TestMemoryManagement:
         # Erstelle großen State
         state = WifiAnalysisState()
         
+        from wlan_tool.storage.data_models import ClientState, Welford
+        import numpy as np
+        
         for i in range(1000):
             mac = f"aa:bb:cc:dd:ee:{i:04x}"
-            client = state.clients[mac] = state.clients.get(mac, type(state).__dict__['clients'].__class__())()
-            client.mac = mac
+            client = ClientState(mac=mac)
             client.probes = {f"SSID_{i % 100}"}
-            client.all_packet_ts = [time.time() - 100 + i, time.time() - 50 + i]
-            client.rssi_w = type(state).__dict__['clients'].__class__()()
+            client.all_packet_ts = np.array([time.time() - 100 + i, time.time() - 50 + i])
+            client.rssi_w = Welford()
             client.rssi_w.update(-50 - i)
+            state.clients[mac] = client
         
         final_memory = process.memory_info().rss
         memory_increase = final_memory - initial_memory
@@ -315,19 +320,21 @@ class TestMemoryManagement:
         # Erstelle State mit alten und neuen Daten
         state = WifiAnalysisState()
         
+        from wlan_tool.storage.data_models import ClientState
+        
         # Alte Clients (werden gepruned)
         for i in range(100):
             mac = f"old:aa:bb:cc:dd:ee:{i:02x}"
-            client = state.clients[mac] = state.clients.get(mac, type(state).__dict__['clients'].__class__())()
-            client.mac = mac
+            client = ClientState(mac=mac)
             client.last_seen = time.time() - 10000  # Sehr alt
+            state.clients[mac] = client
         
         # Neue Clients (bleiben)
         for i in range(100):
             mac = f"new:aa:bb:cc:dd:ee:{i:02x}"
-            client = state.clients[mac] = state.clients.get(mac, type(state).__dict__['clients'].__class__())()
-            client.mac = mac
+            client = ClientState(mac=mac)
             client.last_seen = time.time()  # Neu
+            state.clients[mac] = client
         
         initial_memory = process.memory_info().rss
         

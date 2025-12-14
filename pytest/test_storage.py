@@ -273,10 +273,12 @@ class TestDatabaseModule:
         
         database.add_label(conn, "TestSSID", "aa:bb:cc:dd:ee:ff", 1)
         
-        cursor = conn.execute("SELECT * FROM labels WHERE ssid = ? AND bssid = ?", 
+        cursor = conn.execute("SELECT ssid, bssid, label FROM labels WHERE ssid = ? AND bssid = ?", 
                             ("TestSSID", "aa:bb:cc:dd:ee:ff"))
         result = cursor.fetchone()
         assert result is not None
+        assert result[0] == "TestSSID"  # ssid
+        assert result[1] == "aa:bb:cc:dd:ee:ff"  # bssid
         assert result[2] == 1  # label = 1
     
     def test_migrate_db(self, temp_db_file):

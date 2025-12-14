@@ -710,7 +710,7 @@ def features_for_ap(ap_state: APState) -> Optional[Dict[str, any]]:
         "rssi_mean": ap_state.rssi_w.mean,
         "rssi_std": ap_state.rssi_w.std(),
         "cap_count": len(ap_state.cap_bits),
-        "ie_fingerprint": int(ie_fingerprint_hash(ap_state.ies), 16),
+        "ie_fingerprint": int(ie_fingerprint_hash(ap_state.ies) or "0", 16),
         "supports_tkip": 1 if "TKIP" in rsn.get("pairwise_ciphers", []) else 0,
         "is_enterprise_auth": 1 if "802.1X (EAP)" in rsn.get("akm_suites", []) else 0,
         "mfp_capable": 1 if rsn.get("mfp_capable") else 0,
@@ -722,7 +722,7 @@ def features_for_ap(ap_state: APState) -> Optional[Dict[str, any]]:
 
 
 def cluster_aps(
-    state: WifiAnalysisState, n_clusters: int = 5
+    state: WifiAnalysisState, n_clusters: Optional[int] = 5
 ) -> Optional["pd.DataFrame"]:
     if KMeans is None:
         logger.error("scikit-learn wird für AP-Clustering benötigt.")
@@ -739,7 +739,9 @@ def cluster_aps(
     df_dummies = pd.get_dummies(df, columns=["vendor"], prefix="vendor")
     X = df_dummies.drop(columns=["bssid", "ssid"])
     X_scaled = StandardScaler().fit_transform(X)
-    if n_clusters == 0:
+    
+    # Handle None or 0 n_clusters
+    if n_clusters is None or n_clusters == 0:
         optimal_k = find_optimal_k_elbow_and_silhouette(X_scaled)
         n_clusters = optimal_k or 5
     

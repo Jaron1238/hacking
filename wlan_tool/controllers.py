@@ -17,10 +17,12 @@ from rich.prompt import Prompt
 from . import config, led_controller, utils
 from .analysis import logic as analysis
 from .analysis import training as ml_training
+from .analysis import device_profiler
 from .capture import sniffer as capture
 from .presentation import cli, live_tui
 from .storage import database, state
 from .storage.state import WifiAnalysisState
+from . import pre_run_checks
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +213,8 @@ class CaptureController:
                 f"Ein Befehl zur Erstellung des Monitor-Interfaces ist fehlgeschlagen."
             )
             logger.error(f"Befehl: '{e.cmd}'")
-            logger.error(f"Fehlermeldung: {e.stderr.strip()}")
+            stderr_msg = e.stderr.strip() if e.stderr else "No error message"
+            logger.error(f"Fehlermeldung: {stderr_msg}")
             # Versuche, den ursprünglichen Zustand wiederherzustellen
             logger.info("Versuche, Netzwerkdienste neu zu starten...")
             subprocess.run(
@@ -331,44 +334,54 @@ class AnalysisController:
     def run_inference(self):
         """Führt Inferenz aus."""
         logging.info("Führe Inferenz aus...")
-        # Placeholder implementation
-        pass
+        model = (
+            joblib.load(self.args.model)
+            if self.args.model and Path(self.args.model).exists()
+            else None
+        )
+        inference_results = analysis.score_pairs_with_recency_and_matching(
+            self.state_obj, model
+        )
+        self._handle_inference_output(inference_results)
 
     def run_client_clustering(self):
         """Führt Client-Clustering durch."""
         logging.info("Führe Client-Clustering durch...")
-        # Placeholder implementation
-        pass
+        cli.print_client_cluster_results(self.args, self.state_obj, self.console)
 
     def run_ap_clustering(self):
         """Führt AP-Clustering durch."""
         logging.info("Führe AP-Clustering durch...")
-        # Placeholder implementation
-        pass
+        cli.print_ap_cluster_results(self.args, self.state_obj, self.console)
+
+    def run_graph_export(self):
+        """Exportiert Netzwerk-Graph."""
+        logging.info("Exportiere Netzwerk-Graph...")
+        self._handle_graph_export(self.state_obj, None, None)
 
     def run_labeling_ui(self):
         """Startet Labeling-UI."""
         logging.info("Starte Labeling-UI...")
-        # Placeholder implementation
-        pass
+        cli.interactive_label_ui(
+            self.db_path, self.label_db_path, self.args.model, self.console
+        )
 
     def run_client_labeling_ui(self):
         """Startet Client-Labeling-UI."""
         logging.info("Starte Client-Labeling-UI...")
-        # Placeholder implementation
-        pass
+        cli.interactive_client_label_ui(
+            self.label_db_path, self.state_obj, self.console
+        )
 
     def run_mac_correlation(self):
         """Führt MAC-Korrelation durch."""
         logging.info("Führe MAC-Korrelation durch...")
-        # Placeholder implementation
-        pass
+        device_profiler.correlate_devices_by_fingerprint(self.state_obj)
 
     def run_plugins(self):
         """Führt Plugins aus."""
         logging.info("Führe Plugins aus...")
-        # Placeholder implementation
-        pass
+        self._run_plugins(self.state_obj, self.new_events, None, None)
 
     def run_analysis(self):
         """Startet den Analyse-Prozess."""
@@ -530,10 +543,14 @@ class AnalysisController:
                     "Bitte FRITZ!Box-Passwort eingeben: ", password=True
                 )
 
-        device_map = (
-            device_profiler.get_devices_from_fritzbox_tr064(password=fritz_password)
-            or {}
-        )
+        try:
+            device_map = (
+                device_profiler.get_devices_from_fritzbox_tr064(password=fritz_password)
+                or {}
+            )
+        except Exception as e:
+            self.console.print(f"[red]Fehler beim TR-064 Zugriff: {e}[/red]")
+            device_map = {}
         if device_map:
             self.console.print(
                 f"[bold green]Erfolgreich {len(device_map)} Geräte via TR-064 gefunden![/bold green]"
@@ -611,7 +628,7 @@ class AnalysisController:
 
     def _run_client_clustering_if_needed(self, state_obj):
         if self.args.cluster_clients is not None:
-            return cli._handle_client_clustering(self.args, state_obj, self.console)
+            return cli.print_client_cluster_results(self.args, state_obj, self.console)
 
         plugins_need_clusters = self.args.run_plugins is not None and "umap_plot" in (
             self.args.run_plugins or self.plugins.keys()
@@ -620,8 +637,8 @@ class AnalysisController:
             return analysis.cluster_clients(
                 state_obj,
                 n_clusters=0,
-                algo=self.args.cluster_algo,
-                correlate_macs=(not self.args.no_mac_correlation),
+                algo=getattr(self.args, 'cluster_algo', 'kmeans'),
+                correlate_macs=(not getattr(self.args, 'no_mac_correlation', False)),
             )
         return None, None
 
@@ -720,28 +737,16 @@ class AnalysisController:
             from . import analysis
 
             if self.args.export_graph:
-                analysis.export_graph_for_gephi(
-                    state_obj,
-                    self.args.export_graph,
-                    include_clients=self.args.graph_include_clients,
-                    min_activity=self.args.graph_min_activity,
-                    min_duration=self.args.graph_min_duration,
-                    clustered_df=clustered_ap_df,
-                )
+                # Placeholder for graph export - function doesn't exist yet
                 self.console.print(
-                    f"[green]Graph exportiert nach: {self.args.export_graph}[/green]"
+                    f"[yellow]Graph export not implemented yet[/yellow]"
                 )
 
             if self.args.export_csv:
                 csv_base = self.outdir / "graph_export"
-                analysis.export_graph_csv(
-                    state_obj,
-                    csv_base,
-                    include_clients=self.args.graph_include_clients,
-                    clustered_df=clustered_ap_df,
-                )
+                # Placeholder for CSV export - function doesn't exist yet
                 self.console.print(
-                    f"[green]CSV-Dateien exportiert nach: {csv_base}_nodes.csv und {csv_base}_edges.csv[/green]"
+                    f"[yellow]CSV export not implemented yet[/yellow]"
                 )
         except Exception as e:
             self.console.print(f"[red]Fehler beim Graph-Export: {e}[/red]")

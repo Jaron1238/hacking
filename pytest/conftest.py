@@ -54,7 +54,7 @@ def sample_events(sample_timestamp):
         # Probe Request
         {
             'ts': ts + 1, 'type': 'probe_req', 'client': 'a8:51:ab:0c:b9:e9', 
-            'rssi': -65, 'noise': -98, 'ies': {0: [''], 221: ['0017f20a010103040507080c']},
+            'rssi': -65, 'noise': -98, 'ies': {'probes': ['MyTestWLAN'], 0: ['MyTestWLAN'], 221: ['0017f20a010103040507080c']},
             'ie_order_hash': 54321
         },
         # Data Frames
@@ -66,7 +66,7 @@ def sample_events(sample_timestamp):
          'bssid': '08:96:d7:1a:21:1c', 'rssi': -54, 'mcs_index': 8, 'noise': -91},
         # Weitere Clients
         {'ts': ts + 3, 'type': 'probe_req', 'client': 'b2:87:23:15:7f:f2', 
-         'rssi': -70, 'ies': {0: ['MyOtherWLAN']}, 'ie_order_hash': 67890},
+         'rssi': -70, 'ies': {'probes': ['MyOtherWLAN'], 0: ['MyOtherWLAN']}, 'ie_order_hash': 67890},
         # Alter Client (wird beim Pruning entfernt)
         {'ts': ts - 8000, 'type': 'probe_req', 'client': 'DE:AD:BE:EF:00:00', 
          'rssi': -80, 'ies': {0: ['OldWLAN']}, 'ie_order_hash': 11111}

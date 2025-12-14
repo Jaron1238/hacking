@@ -18,14 +18,16 @@ from ..storage import database, state
 
 def print_client_cluster_results(args, state, console):
     """Führt das Client-Clustering aus und gibt die Ergebnisse formatiert aus."""
+    use_correlation = not getattr(args, 'no_mac_correlation', False)
+    
     clustered_df, feature_df = analysis.cluster_clients(
         state,
         n_clusters=args.cluster_clients,
         algo=args.cluster_algo,
-        use_correlation=(not args.no_mac_correlation),
     )
+    
     """Gibt die Ergebnisse des Client-Clusterings formatiert aus."""
-    if clustered_df is not None and not clustered_df.empty:
+    if clustered_df is None or clustered_df.empty:
         console.print(
             "[yellow]Keine Client-Daten für das Clustering gefunden.[/yellow]"
         )

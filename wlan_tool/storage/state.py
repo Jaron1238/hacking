@@ -63,7 +63,11 @@ class WifiAnalysisState:
         )
 
     def update_from_event(self, ev: dict, detailed_ies: bool = False):
-        ts, ev_type = ev["ts"], ev.get("type")
+        try:
+            ts, ev_type = ev["ts"], ev.get("type")
+        except KeyError as e:
+            logger.warning(f"Malformed event missing required field: {e}")
+            return
 
         client_mac = ev.get("client")
         if client_mac:

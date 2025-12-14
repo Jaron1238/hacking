@@ -424,6 +424,7 @@ class BatchedEventWriter(threading.Thread):
 
     def _event_to_tuple(self, e: dict) -> tuple:
         ies_data = e.get("ies") or {}
+        # Convert all keys to strings for JSON serialization
         ies_for_json = {str(k): v for k, v in ies_data.items()}
         return (
             e["ts"],
@@ -568,6 +569,65 @@ class BatchedEventWriter(threading.Thread):
             self.join(timeout=timeout)
             if self.is_alive():
                 logger.warning("BatchedEventWriter wurde nicht sauber beendet.")
+
+
+@handle_errors(DatabaseError, "DB_ADD_EVENT_ERROR", reraise=True)
+def add_event(conn: sqlite3.Connection, event: dict):
+    """Füge Event zur Datenbank hinzu mit Fehlerbehandlung."""
+    with ErrorContext("add_event", "DB_ADD_EVENT_ERROR"):
+        # Validiere Event
+        if not isinstance(event, dict):
+            raise ValidationError(
+                f"Invalid event type: {type(event)}",
+                error_code="INVALID_EVENT_TYPE",
+                details={"event_type": str(type(event))},
+            )
+
+        required_fields = ["ts", "type"]
+        for field in required_fields:
+            if field not in event:
+                raise ValidationError(
+                    f"Missing required field: {field}",
+                    error_code="MISSING_EVENT_FIELD",
+                    details={"field": field, "event": event},
+                )
+
+        try:
+            # Konvertiere Event zu Tupel
+            ies_data = event.get("ies", {})
+            # Convert all keys to strings for JSON serialization
+            ies_for_json = {str(k): v for k, v in ies_data.items()}
+            
+            event_tuple = (
+                event["ts"],
+                event["type"],
+                event.get("bssid"),
+                event.get("ssid"),
+                event.get("client"),
+                event.get("channel"),
+                dumps(ies_for_json),
+                event.get("seq"),
+                event.get("rssi"),
+                event.get("beacon_interval"),
+                event.get("cap"),
+                event.get("beacon_timestamp"),
+                event.get("is_powersave"),
+            )
+
+            # Füge Event zur Datenbank hinzu
+            conn.execute(
+                "INSERT INTO events(ts,type,bssid,ssid,client,channel,ies,seq,rssi,beacon_interval,cap,beacon_timestamp,is_powersave) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                event_tuple,
+            )
+            conn.commit()
+            logger.debug(f"Added event: {event['type']} at {event['ts']}")
+
+        except sqlite3.Error as e:
+            raise DatabaseError(
+                f"Failed to add event: {e}",
+                error_code="ADD_EVENT_FAILED",
+                details={"event": event, "sqlite_error": str(e)},
+            ) from e
 
 
 @handle_errors(DatabaseError, "DB_ADD_LABEL_ERROR", reraise=True)

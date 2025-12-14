@@ -14,7 +14,7 @@ import time
 
 from wlan_tool.presentation import cli, reporting
 from wlan_tool.storage.state import WifiAnalysisState, ClientState, APState
-from wlan_tool.storage.data_models import InferenceResult
+from wlan_tool.storage.data_models import InferenceResult, Welford
 
 
 class TestCLIModule:

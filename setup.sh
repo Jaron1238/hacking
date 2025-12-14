@@ -33,6 +33,21 @@ if ! command -v curl &> /dev/null; then
 fi
 
 echo "System-Tools sind verfügbar."
+
+# Prüfe Build-Dependencies für Python
+echo -e "${YELLOW}Prüfe Build-Dependencies...${NC}"
+if ! command -v brew &> /dev/null; then
+    echo -e "${YELLOW}Homebrew nicht gefunden. Installiere Build-Dependencies manuell...${NC}"
+    # Xcode Command Line Tools sollten ausreichen
+    if ! xcode-select -p &> /dev/null; then
+        echo -e "${RED}Xcode Command Line Tools fehlen. Installiere sie:${NC}"
+        echo "xcode-select --install"
+        exit 1
+    fi
+else
+    echo "Installiere Build-Dependencies mit Homebrew..."
+    brew install openssl readline sqlite3 xz zlib
+fi
 echo ""
 
 # --- Schritt 2: pyenv installieren und einrichten ---
@@ -51,21 +66,29 @@ export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 
-# Konfiguration für zsh (Standard-Shell auf macOS)
+# Shell-Konfiguration für pyenv
 if [[ "$SHELL" == */zsh ]]; then
-    SHELL_RC="~/.zshrc"
-    grep -qF 'PYENV_ROOT' ~/.zshrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-    grep -qF 'pyenv init' ~/.zshrc || {
-        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-        echo 'eval "$(pyenv init -)"' >> ~/.zshrc
-    }
+    # zsh Konfiguration
+    if ! grep -q 'PYENV_ROOT' ~/.zshrc 2>/dev/null; then
+        echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+        echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+        echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
+        echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.zshrc
+        echo "pyenv-Konfiguration zu ~/.zshrc hinzugefügt."
+    fi
 else
-    # Fallback für bash
-    grep -qF 'PYENV_ROOT' ~/.bashrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-    grep -qF 'pyenv init' ~/.bashrc || {
-        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-        echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-    }
+    # bash Konfiguration - sowohl .bash_profile als auch .bashrc
+    for profile in ~/.bash_profile ~/.bashrc; do
+        if [[ -f "$profile" ]] || [[ "$profile" == *".bash_profile" ]]; then
+            if ! grep -q 'PYENV_ROOT' "$profile" 2>/dev/null; then
+                echo 'export PYENV_ROOT="$HOME/.pyenv"' >> "$profile"
+                echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> "$profile"
+                echo 'eval "$(pyenv init - bash)"' >> "$profile"
+                echo 'eval "$(pyenv virtualenv-init -)"' >> "$profile"
+                echo "pyenv-Konfiguration zu $profile hinzugefügt."
+            fi
+        fi
+    done
 fi
 echo ""
 
@@ -84,8 +107,14 @@ if pyenv versions --bare | grep -q "^$PYTHON_VERSION_TO_INSTALL$"; then
     echo "Python $PYTHON_VERSION_TO_INSTALL ist bereits installiert."
 else
     echo "Die Installation wird eine Weile dauern. Bitte habe Geduld."
-    # Kompiliert und installiert die gewünschte Python-Version
-    pyenv install "$PYTHON_VERSION_TO_INSTALL"
+    
+    # Build-Environment für macOS setzen
+    export LDFLAGS="-L$(brew --prefix)/lib" 2>/dev/null || true
+    export CPPFLAGS="-I$(brew --prefix)/include" 2>/dev/null || true
+    export PKG_CONFIG_PATH="$(brew --prefix)/lib/pkgconfig" 2>/dev/null || true
+    
+    # Python mit korrekten Build-Flags installieren
+    PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install "$PYTHON_VERSION_TO_INSTALL"
 fi
 echo ""
 
@@ -138,6 +167,7 @@ echo "- Packet Capture ist ohne Root-Rechte nicht möglich"
 echo "- Nur Analyse-Features sind verfügbar"
 echo ""
 echo "Nächste Schritte:"
+echo -e "${RED}WICHTIG: Starte dein Terminal neu oder führe aus: ${YELLOW}exec $SHELL${NC}"
 echo -e "1. Aktiviere die Umgebung: ${YELLOW}source .venv/bin/activate${NC}"
 echo -e "2. Für Analyse vorhandener Daten: ${YELLOW}python main.py --project my_project --infer --tui${NC}"
 echo -e "3. Deaktiviere die Umgebung: ${YELLOW}deactivate${NC}"

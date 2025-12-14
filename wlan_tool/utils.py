@@ -31,6 +31,7 @@ OUI_SOURCES = [
     },
 ]
 OUI_LOCAL_PATH = Path(__file__).parent / "assets" / "manuf"
+CONFIG_PATH = Path(__file__).parent / "config.yaml"
 
 
 def download_oui_file():
@@ -101,8 +102,14 @@ def _parse_wireshark_format(file_path: Path) -> Dict[str, str]:
     return mapping
 
 
-def load_config(profile: Optional[str]) -> Dict:
+def load_config(profile: Optional[str] = None) -> Dict:
     """Lädt die Konfiguration aus config.yaml und wendet ein Profil an."""
+    # Default config
+    default_config = {
+        "capture": {"interface": "mon0", "duration": 120},
+        "database": {"path": "events.db"}
+    }
+    
     # Versuche, die config.yaml im aktuellen Verzeichnis oder im Projekt-Stammverzeichnis zu finden
     config_path = Path.cwd() / "config.yaml"
     if not config_path.exists():
@@ -110,11 +117,21 @@ def load_config(profile: Optional[str]) -> Dict:
 
     if not config_path.exists():
         logger.warning("Keine 'config.yaml'-Datei gefunden. Verwende Standardwerte.")
-        return {}
+        return default_config
 
     try:
         with open(config_path, "r") as f:
-            base_config = yaml.safe_load(f) or {}
+            base_config = yaml.safe_load(f) or default_config
+        
+        # Merge with defaults
+        for key, value in default_config.items():
+            if key not in base_config:
+                base_config[key] = value
+            elif isinstance(value, dict) and isinstance(base_config[key], dict):
+                for subkey, subvalue in value.items():
+                    if subkey not in base_config[key]:
+                        base_config[key][subkey] = subvalue
+        
         if profile and profile in base_config.get("profiles", {}):
             profile_settings = base_config["profiles"][profile]
             for key, value in profile_settings.items():
@@ -126,7 +143,7 @@ def load_config(profile: Optional[str]) -> Dict:
         return base_config
     except (yaml.YAMLError, Exception) as e:
         logger.error(f"Fehler beim Laden oder Parsen von {config_path}: {e}")
-        return {}
+        return default_config
 
 
 def build_oui_map() -> Dict[str, str]:
@@ -168,20 +185,34 @@ OUI_MAP = build_oui_map()
 
 def is_local_admin_mac(mac: Optional[str]) -> bool:
     try:
-        if not mac:
+        if not mac or len(mac) < 2:
+            return False
+        # Prüfe ob MAC-Format korrekt ist
+        if ':' not in mac:
             return False
         first_octet = mac.split(":")[0]
+        if len(first_octet) != 2:
+            return False
         val = int(first_octet, 16)
         return bool(val & 0x02)
     except (ValueError, IndexError):
-        return False
+        return True  # Bei Fehlern als lokal/randomisiert behandeln
 
 
 def is_valid_bssid(mac: Optional[str]) -> bool:
     if not mac or mac == "ff:ff:ff:ff:ff:ff":
         return False
     try:
-        first_octet = int(mac.split(":")[0], 16)
+        # Prüfe MAC-Format
+        parts = mac.split(":")
+        if len(parts) != 6:
+            return False
+        for part in parts:
+            if len(part) != 2:
+                return False
+            int(part, 16)  # Validiere Hex-Format
+        
+        first_octet = int(parts[0], 16)
         return (first_octet & 1) == 0
     except (ValueError, IndexError):
         return False
