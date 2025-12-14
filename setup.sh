@@ -1,14 +1,10 @@
 #!/bin/bash
-# Sicheres Setup-Skript für WLAN Analysis Tool
-# Installiert eine spezifische Python-Version sicher mit pyenv
-# und richtet eine virtuelle Umgebung ein.
+# Setup-Skript für WLAN Analysis Tool (macOS ohne Admin-Rechte)
+# Installiert Python mit pyenv und richtet eine virtuelle Umgebung ein.
 
 set -e # Beendet das Skript sofort, wenn ein Befehl fehlschlägt
 
 # --- Konfiguration ---
-# Hier kannst du die gewünschte Python-Version eintragen.
-# '3.14.0' für eine spezifische Version.
-# Oder setze es auf 'LATEST' für die automatisch neueste stabile Version.
 PYTHON_VERSION_WANTED="3.11.9"
 
 # --- Farben für die Ausgabe ---
@@ -18,24 +14,25 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo -e "${GREEN}=================================================="
-echo "Sicheres Setup für WLAN Analysis Tool"
+echo "Setup für WLAN Analysis Tool (macOS)"
 echo "Ziel-Python-Version: $PYTHON_VERSION_WANTED"
 echo "=================================================="
 echo ""
 
-# --- Schritt 1: System-Update & Abhängigkeiten für pyenv ---
-echo -e "${YELLOW}Schritt 1: System wird aktualisiert und Build-Abhängigkeiten werden installiert...${NC}"
-sudo apt update
-sudo apt upgrade -y
-# Notwendige Pakete zum Kompilieren von Python
-sudo apt install -y build-essential libssl-dev zlib1g-dev \
-libbz2-dev libreadline-dev libsqlite3-dev curl git \
-libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev \
-python3-venv python3-pip
+# --- Schritt 1: Prüfe System-Abhängigkeiten ---
+echo -e "${YELLOW}Schritt 1: Prüfe verfügbare System-Tools...${NC}"
+if ! command -v git &> /dev/null; then
+    echo -e "${RED}Git ist nicht installiert. Bitte installiere Xcode Command Line Tools:${NC}"
+    echo "xcode-select --install"
+    exit 1
+fi
 
-# Alte Kernel und ungenutzte Pakete sicher entfernen
-echo -e "${YELLOW}Entferne alte Kernel und räume das System auf...${NC}"
-sudo apt autoremove -y
+if ! command -v curl &> /dev/null; then
+    echo -e "${RED}curl ist nicht verfügbar.${NC}"
+    exit 1
+fi
+
+echo "System-Tools sind verfügbar."
 echo ""
 
 # --- Schritt 2: pyenv installieren und einrichten ---
@@ -43,22 +40,33 @@ echo -e "${YELLOW}Schritt 2: pyenv wird installiert...${NC}"
 if [ -d "$HOME/.pyenv" ]; then
     echo "pyenv ist bereits installiert."
 else
-    # Offizieller pyenv-Installer
+    # pyenv direkt installieren (ohne Homebrew)
+    echo "Installiere pyenv direkt..."
     curl https://pyenv.run | bash
 fi
 
-# pyenv zur Shell hinzufügen, damit es sofort verfügbar ist
+# pyenv zur Shell hinzufügen
 export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init --path)"
 eval "$(pyenv init -)"
 
-# Sicherstellen, dass die Konfiguration auch für zukünftige Logins gilt
-grep -qF 'PYENV_ROOT' ~/.bashrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
-grep -qF 'pyenv init' ~/.bashrc || {
-  echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
-  echo 'eval "$(pyenv init -)"' >> ~/.bashrc
-}
+# Konfiguration für zsh (Standard-Shell auf macOS)
+if [[ "$SHELL" == */zsh ]]; then
+    SHELL_RC="~/.zshrc"
+    grep -qF 'PYENV_ROOT' ~/.zshrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+    grep -qF 'pyenv init' ~/.zshrc || {
+        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+        echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+    }
+else
+    # Fallback für bash
+    grep -qF 'PYENV_ROOT' ~/.bashrc || echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+    grep -qF 'pyenv init' ~/.bashrc || {
+        echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+        echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+    }
+fi
 echo ""
 
 # --- Schritt 3: Gewünschte Python-Version installieren ---
@@ -120,14 +128,17 @@ echo ""
 
 # --- Abschluss ---
 echo -e "${GREEN}=================================================="
-echo "Setup erfolgreich und sicher abgeschlossen!"
+echo "Setup erfolgreich abgeschlossen!"
 echo "Python-Version: $(python --version)"
 echo "==================================================${NC}"
 echo ""
-echo "Das System wurde NICHT durch unsichere Änderungen gefährdet."
+echo -e "${YELLOW}WICHTIG für macOS ohne Admin-Rechte:${NC}"
+echo "- Das Tool kann NICHT im Monitor-Mode arbeiten"
+echo "- Packet Capture ist ohne Root-Rechte nicht möglich"
+echo "- Nur Analyse-Features sind verfügbar"
 echo ""
-echo "Nächste Schritte, um das Tool zu verwenden:"
+echo "Nächste Schritte:"
 echo -e "1. Aktiviere die Umgebung: ${YELLOW}source .venv/bin/activate${NC}"
-echo -e "2. Führe dein Programm aus (Beispiel): ${YELLOW}python main.py --deine-optionen${NC}"
-echo -e "3. Wenn du fertig bist, deaktiviere die Umgebung: ${YELLOW}deactivate${NC}"
+echo -e "2. Für Analyse vorhandener Daten: ${YELLOW}python main.py --project my_project --infer --tui${NC}"
+echo -e "3. Deaktiviere die Umgebung: ${YELLOW}deactivate${NC}"
 echo ""
