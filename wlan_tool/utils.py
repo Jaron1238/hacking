@@ -17,15 +17,24 @@ if typing.TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # MEHRERE ZUVERLÄSSIGE QUELLEN FÜR OUI-DATEN
-# Das Skript wird sie in dieser Reihenfolge ausprobieren.
 OUI_SOURCES = [
     {
-        "name": "Nmap",
+        "name": "IEEE Official",
+        "url": "https://standards-oui.ieee.org/oui/oui.txt",
+        "format": "ieee",
+    },
+    {
+        "name": "Nmap GitHub",
         "url": "https://raw.githubusercontent.com/nmap/nmap/master/nmap-mac-prefixes",
         "format": "nmap",
     },
     {
-        "name": "Wireshark (SVN)",
+        "name": "Wireshark GitLab",
+        "url": "https://gitlab.com/wireshark/wireshark/-/raw/master/manuf",
+        "format": "wireshark",
+    },
+    {
+        "name": "Wireshark SVN",
         "url": "https://anonsvn.wireshark.org/wireshark/trunk/manuf",
         "format": "wireshark",
     },
@@ -34,35 +43,103 @@ OUI_LOCAL_PATH = Path(__file__).parent / "assets" / "manuf"
 CONFIG_PATH = Path(__file__).parent / "config.yaml"
 
 
-def download_oui_file():
+def download_oui_file(force_update: bool = False, progress_callback=None):
     """
     Lädt die OUI-Herstellerdatei von der bestmöglichen Quelle herunter.
-    Versucht nacheinander mehrere URLs, bis eine erfolgreich ist.
+    
+    Args:
+        force_update: Erzwingt Download auch wenn Datei bereits existiert
+        progress_callback: Callback-Funktion für Download-Progress
     """
-    for source in OUI_SOURCES:
-        logger.info(f"Versuche OUI-Download von Quelle: {source['name']}...")
-        try:
-            req = urllib.request.Request(
-                source["url"], headers={"User-Agent": "Mozilla/5.0"}
-            )
-            with urllib.request.urlopen(req) as response, open(
-                OUI_LOCAL_PATH, "wb"
-            ) as out_file:
-                data = response.read()
-                out_file.write(data)
-            logger.info(
-                f"OUI-Datei von {source['name']} erfolgreich nach '{OUI_LOCAL_PATH}' heruntergeladen."
-            )
-            # Speichere das Format der heruntergeladenen Datei für den Parser
-            (OUI_LOCAL_PATH.parent / ".manuf_format").write_text(source["format"])
+    # Prüfe ob Update nötig ist
+    if not force_update and OUI_LOCAL_PATH.exists():
+        file_age = time.time() - OUI_LOCAL_PATH.stat().st_mtime
+        if file_age < 7 * 24 * 3600:  # 7 Tage
+            logger.info(f"OUI-Datei ist aktuell (Alter: {file_age/3600:.1f}h)")
             return True
+    
+    # Erstelle Verzeichnis falls nötig
+    OUI_LOCAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    
+    for i, source in enumerate(OUI_SOURCES):
+        logger.info(f"[{i+1}/{len(OUI_SOURCES)}] Download: {source['name']}")
+        
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+                "Accept": "text/plain,text/html,*/*",
+            }
+            
+            req = urllib.request.Request(source["url"], headers=headers)
+            
+            with urllib.request.urlopen(req, timeout=30) as response:
+                content_length = response.headers.get('Content-Length')
+                total_size = int(content_length) if content_length else None
+                
+                downloaded = 0
+                data_chunks = []
+                
+                while True:
+                    chunk = response.read(8192)
+                    if not chunk:
+                        break
+                    
+                    data_chunks.append(chunk)
+                    downloaded += len(chunk)
+                    
+                    if progress_callback and total_size:
+                        progress_callback(downloaded, total_size)
+                
+                data = b''.join(data_chunks)
+                
+                if len(data) < 1000:
+                    raise ValueError(f"Download zu klein: {len(data)} bytes")
+                
+                # Backup alte Datei
+                if OUI_LOCAL_PATH.exists():
+                    backup_path = OUI_LOCAL_PATH.with_suffix('.bak')
+                    OUI_LOCAL_PATH.rename(backup_path)
+                
+                # Neue Datei schreiben
+                with open(OUI_LOCAL_PATH, "wb") as out_file:
+                    out_file.write(data)
+                
+                # Metadaten speichern
+                (OUI_LOCAL_PATH.parent / ".manuf_format").write_text(source["format"])
+                
+                logger.info(f"✓ OUI-Datei heruntergeladen: {len(data):,} bytes")
+                return True
+                
+        except urllib.error.HTTPError as e:
+            logger.warning(f"HTTP-Fehler bei {source['name']}: {e.code}")
         except Exception as e:
-            logger.warning(f"Download von {source['name']} fehlgeschlagen: {e}")
-            continue  # Versuche die nächste Quelle
-
-    logger.error("Alle Download-Quellen für die OUI-Datei sind fehlgeschlagen.")
+            logger.warning(f"Fehler bei {source['name']}: {type(e).__name__}")
+        
+        if i < len(OUI_SOURCES) - 1:
+            time.sleep(1)
+    
+    logger.error("✗ Alle OUI-Download-Quellen fehlgeschlagen")
     return False
 
+
+def _parse_ieee_format(file_path: Path) -> Dict[str, str]:
+    """Parser für das IEEE OUI.txt Format."""
+    mapping = {}
+    with open(file_path, "r", errors="ignore") as f:
+        for line in f:
+            line = line.strip()
+            if not line or "(hex)" not in line:
+                continue
+            try:
+                if "(hex)" in line and "\t" in line:
+                    hex_part = line.split("(hex)")[0].strip()
+                    vendor_part = line.split("\t")[-1].strip()
+                    if hex_part and vendor_part:
+                        mac_prefix = hex_part.replace("-", ":").upper()
+                        mapping[mac_prefix] = vendor_part
+            except (ValueError, IndexError):
+                continue
+    return mapping
 
 def _parse_nmap_format(file_path: Path) -> Dict[str, str]:
     """Parser für das 'nmap-mac-prefixes' Format (z.B. '000000 Apple')."""
@@ -75,7 +152,6 @@ def _parse_nmap_format(file_path: Path) -> Dict[str, str]:
             parts = line.split(maxsplit=1)
             if len(parts) == 2:
                 mac_hex, vendor = parts
-                # Konvertiere '001122' zu '00:11:22'
                 if len(mac_hex) == 6:
                     pref_norm = f"{mac_hex[0:2].upper()}:{mac_hex[2:4].upper()}:{mac_hex[4:6].upper()}"
                     mapping[pref_norm] = vendor
@@ -151,36 +227,44 @@ def build_oui_map() -> Dict[str, str]:
     Erstellt das OUI-Mapping aus der lokalen Datei und wählt den korrekten Parser.
     """
     if not OUI_LOCAL_PATH.exists():
-        logger.warning(
-            f"Lokale OUI-Datei ('{OUI_LOCAL_PATH}') nicht gefunden. Versuche Download..."
-        )
+        logger.warning(f"OUI-Datei nicht gefunden. Versuche Download...")
         if not download_oui_file():
+            logger.error("OUI-Download fehlgeschlagen. Vendor-Lookup nicht verfügbar.")
             return {}
 
     format_file = OUI_LOCAL_PATH.parent / ".manuf_format"
-    file_format = "wireshark"  # Standard-Fallback
+    file_format = "wireshark"
     if format_file.exists():
         file_format = format_file.read_text().strip()
 
-    logger.info(f"Lese OUI-Datei im Format: '{file_format}'")
+    logger.info(f"Lade OUI-Datenbank im Format: '{file_format}'")
+    
     try:
-        if file_format == "nmap":
+        start_time = time.time()
+        
+        if file_format == "ieee":
+            mapping = _parse_ieee_format(OUI_LOCAL_PATH)
+        elif file_format == "nmap":
             mapping = _parse_nmap_format(OUI_LOCAL_PATH)
-        else:  # Standard ist wireshark
+        else:
             mapping = _parse_wireshark_format(OUI_LOCAL_PATH)
+        
+        load_time = time.time() - start_time
+        
+        if mapping:
+            logger.info(f"✓ OUI-Datenbank geladen: {len(mapping):,} Einträge in {load_time:.2f}s")
+        else:
+            logger.warning("⚠️ Keine OUI-Einträge geladen. Vendor-Lookup nicht verfügbar.")
+            
     except Exception as exc:
-        logger.error("Fehler beim Parsen der OUI-Datei %s: %s", OUI_LOCAL_PATH, exc)
+        logger.error(f"✗ Fehler beim Parsen der OUI-Datei: {exc}")
         return {}
-
-    if not mapping:
-        logger.warning(
-            "Keine Einträge aus der OUI-Datei geladen. Hersteller-Lookup wird nicht funktionieren."
-        )
 
     return mapping
 
 
-OUI_MAP = build_oui_map()
+# Lazy-Loading für bessere Startup-Performance
+OUI_MAP = {}
 
 
 def is_local_admin_mac(mac: Optional[str]) -> bool:
@@ -219,12 +303,20 @@ def is_valid_bssid(mac: Optional[str]) -> bool:
 
 
 def lookup_vendor(mac: Optional[str]) -> Optional[str]:
-    """Einfacher Vendor-Lookup ohne Kontext. Bevorzuge intelligent_vendor_lookup."""
+    """Einfacher Vendor-Lookup ohne Kontext."""
     if not mac:
         return None
     if is_local_admin_mac(mac):
         return "(Lokal / Randomisiert)"
+    
     pref = mac.replace("-", ":").upper()[:8]
+    
+    # Lazy-Loading der OUI-Map
+    global OUI_MAP
+    if not OUI_MAP:
+        logger.info("OUI-Map wird geladen...")
+        OUI_MAP = build_oui_map()
+    
     return OUI_MAP.get(pref)
 
 

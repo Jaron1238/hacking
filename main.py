@@ -55,7 +55,7 @@ def parse_args():
     p = argparse.ArgumentParser(description="WLAN SSID-BSSID Correlation and Analysis Tool")
     p.add_argument("--project", help="Name für das Analyse-Projekt. Alle Dateien werden in einem Verzeichnis dieses Namens gespeichert/geladen.")
     p.add_argument("--profile", help="Name des zu verwendenden Konfigurationsprofils (z.B. fast_scan)")
-    p.add_argument("--capture_mode", action="store_true", help= "Wenn aktiviert kann gecaptured werden")
+    # Capture mode wird automatisch aus config.yaml ermittelt
     g_out = p.add_argument_group("Output Options")
     g_out.add_argument("--outdir", help="Basis-Verzeichnis für alle Ausgabedateien (wird von --project überschrieben).")
     g_out.add_argument("--status-led", action="store_true", help="Lässt die rote PWR-LED des Raspberry Pi blinken, während das Skript läuft.")
@@ -193,10 +193,25 @@ def main():
             (project_path / "db").mkdir(exist_ok=True)
             args.outdir = str(project_path)
             console.print(f"[bold green]Projekt '{args.project}' wird verwendet. Alle Dateien in: {project_path.resolve()}[/bold green]")
-        cap = args.capture_mode
-        logger.info(cap)
-        # --- Modus-Auswahl basierend auf den Argumenten ---
-        is_capture_mode = True if cap else False
+        # --- Capture-Modus nur bei expliziten Capture-Argumenten ---
+        # Prüfe ob explizite Capture-Parameter angegeben wurden
+        explicit_capture_args = any([
+            args.iface, args.duration, args.pcap, 
+            args.adaptive_scan, args.discovery_time
+        ])
+        
+        if explicit_capture_args:
+            # Interface-Verfügbarkeit prüfen
+            interface_available = pre_run_checks.find_wlan_interfaces()
+            if interface_available:
+                is_capture_mode = True
+                console.print(f"[green]Capture-Modus aktiviert (Interface: {interface_available[0]})[/green]")
+            else:
+                console.print("[red]Capture-Parameter angegeben, aber kein WLAN-Interface verfügbar[/red]")
+                return
+        else:
+            is_capture_mode = False
+            console.print("[cyan]Analyse-Modus (keine Capture-Parameter angegeben)[/cyan]")
         
         analysis_actions = [
             args.infer, args.auto_retrain, args.classify_clients,
@@ -208,7 +223,17 @@ def main():
             args.tui, args.enhanced_analysis, args.deep_packet_inspection,
             args.advanced_metrics, args.custom_report
         ]
-        is_analysis_mode = any(analysis_actions)
+        
+        # Analyse-Modus wenn explizite Aktionen angegeben oder Datenbank vorhanden
+        outdir = Path(args.outdir) if args.outdir else Path.cwd()
+        db_path = args.db or str(outdir / "db" / "events.db")
+        has_existing_data = Path(db_path).exists()
+        
+        is_analysis_mode = any(analysis_actions) or (has_existing_data and not is_capture_mode)
+        
+        # Fallback: Wenn weder Capture noch Analyse möglich, zeige Hilfe
+        if not is_capture_mode and not is_analysis_mode:
+            console.print("[yellow]Weder Capture noch Analyse möglich. Verwende --help für Optionen.[/yellow]")
         if is_capture_mode:
             # Prüfe ob erweiterte Analyse gewünscht ist
             if args.enhanced_analysis or args.deep_packet_inspection or args.advanced_metrics:
@@ -233,7 +258,6 @@ def main():
 
         if is_analysis_mode:
             # KORREKTUR: Lade den Zustand VOR der Initialisierung des Controllers.
-            outdir = Path(args.outdir) if args.outdir else Path.cwd()
             db_path = args.db or str(outdir / "db" / "events.db")
             state_file = outdir / "wifi.state"
             state = None
@@ -303,8 +327,7 @@ def main():
                 analysis_controller = AnalysisController(args, config_data, console, plugins, state, new_events)
                 analysis_controller.run_analysis()
         
-        if not is_capture_mode and not is_analysis_mode:
-            console.print("[yellow]Keine Aktion angegeben. Führen Sie '--help' für eine Liste der Optionen aus.[/yellow]")
+        # Bereits oben behandelt
 
     finally:
         logger.info("Alles erledigt.")

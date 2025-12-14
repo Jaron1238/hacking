@@ -10,6 +10,10 @@ capture:
   duration: 2700
   # Name der PCAP-Datei, die gespeichert wird, wenn --pcap angegeben wird.
   pcap_file: "capture.pcap"
+  # Automatische Erkennung von Capture-Modus basierend auf verfügbaren Interfaces
+  auto_detect_mode: true
+  # Fallback auf Analyse-Modus wenn kein Interface verfügbar
+  fallback_to_analysis: true
 
 # --- Database Settings ---
 database:
